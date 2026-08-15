@@ -23,6 +23,7 @@ local module_paths = {
 	"TertiumFixes/scripts/mods/TertiumFixes/modules/power_overload_hud",
 	"TertiumFixes/scripts/mods/TertiumFixes/modules/chain_smoke_cleanup",
 	"TertiumFixes/scripts/mods/TertiumFixes/modules/servo_skull_scroll",
+	"TertiumFixes/scripts/mods/TertiumFixes/modules/notification_queue_callbacks",
 	"TertiumFixes/scripts/mods/TertiumFixes/modules/notification_dedupe",
 	"TertiumFixes/scripts/mods/TertiumFixes/modules/localization_guard",
 	"TertiumFixes/scripts/mods/TertiumFixes/modules/gc_pressure",

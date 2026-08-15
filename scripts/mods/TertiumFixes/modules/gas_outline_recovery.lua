@@ -107,7 +107,7 @@ function module:_apply()
 			runtime:set_available(
 				self.id,
 				false,
-				"exact 1.12.3 toxic-gas buff shape no longer matches"
+				"exact 1.12.4 toxic-gas buff shape no longer matches"
 			)
 
 			return false

@@ -60,7 +60,7 @@ function module:_apply()
 		or type(source.related_talents) ~= "table"
 		or #source.related_talents ~= 1
 		or source.related_talents[1] ~= "cryptic_overload_keystone" then
-		runtime:set_available(self.id, false, "exact 1.12.3 Power Overload templates no longer match")
+		runtime:set_available(self.id, false, "exact 1.12.4 Power Overload templates no longer match")
 
 		return false
 	end

@@ -47,7 +47,7 @@ function module:_apply()
 		runtime:set_available(
 			self.id,
 			false,
-			"exact 1.12.3 Prime Target effect metadata no longer matches"
+			"exact 1.12.4 Prime Target effect metadata no longer matches"
 		)
 
 		return false

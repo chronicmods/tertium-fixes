@@ -107,6 +107,22 @@ local function new_harness(options)
 			error("intentional hook application failure: " .. method_name, 0)
 		end
 
+		if options.hook_warning_method == method_name then
+			self:warning("(hook): Attempting to rehook active hook [%s].", method_name)
+
+			return nil
+		end
+
+		if options.hook_error_method == method_name then
+			self:error("(hook): rejected method [%s].", method_name)
+
+			return nil
+		end
+
+		if options.hook_false_method == method_name then
+			return false
+		end
+
 		applied_hooks[#applied_hooks + 1] = {
 			handler = handler,
 			method_name = method_name,
@@ -148,6 +164,144 @@ local function add_module(runtime, module_id)
 	check(runtime:add_module(module), module_id .. " registers")
 
 	return module
+end
+
+do
+	local harness = new_harness()
+	local runtime = harness.runtime
+	local module = add_module(runtime, "officially_fixed")
+
+	module._fixed_upstream = true
+	runtime:set_available("officially_fixed", false, "fixed upstream")
+	runtime:print_status("officially_fixed")
+
+	check(
+		contains(harness.mod.echoes[#harness.mod.echoes], "(fixed upstream)"),
+		"status output distinguishes an upstream fix from a missing repair"
+	)
+end
+
+-- DMF returns nil on successful registration, so nil alone must stay green.
+-- Its non-throwing rejection paths synchronously log through this mod's
+-- warning/error methods; those diagnostics must turn the path terminal and the
+-- temporary logger shadows must never leak.
+do
+	local harness = new_harness({ hook_warning_method = "duplicate" })
+	local runtime = harness.runtime
+	local duplicate = add_module(runtime, "duplicate_hook")
+	local later = add_module(runtime, "later_after_duplicate")
+	local original_error = harness.mod.error
+	local original_warning = harness.mod.warning
+
+	runtime:install_hook(
+		"duplicate_hook",
+		"game/hook_warning",
+		"duplicate",
+		"safe",
+		function ()
+		end
+	)
+	runtime:install_hook(
+		"later_after_duplicate",
+		"game/hook_warning",
+		"later",
+		"safe",
+		function ()
+		end
+	)
+	runtime:_register_deferred_paths()
+	harness.registrations["game/hook_warning"]({
+		duplicate = function ()
+		end,
+		later = function ()
+		end,
+	})
+
+	check(
+		runtime._deferred_paths["game/hook_warning"].state == "restart-required"
+			and duplicate.state.available == false
+			and later.state.available == false
+			and harness.hook_attempts.duplicate == 1
+			and harness.hook_attempts.later == nil
+			and #harness.applied_hooks == 0,
+		"a DMF duplicate warning cannot become a false applied status"
+	)
+	check(
+		harness.mod.error == original_error
+			and harness.mod.warning == original_warning,
+		"DMF logger methods are restored after a warning rejection"
+	)
+end
+
+do
+	local harness = new_harness({ hook_error_method = "reject" })
+	local runtime = harness.runtime
+	local rejected = add_module(runtime, "error_rejected_hook")
+	local original_error = harness.mod.error
+	local original_warning = harness.mod.warning
+
+	runtime:install_hook(
+		"error_rejected_hook",
+		"game/hook_error",
+		"reject",
+		"normal",
+		function ()
+		end
+	)
+	runtime:_register_deferred_paths()
+	harness.registrations["game/hook_error"]({
+		reject = function ()
+		end,
+	})
+
+	check(
+		runtime._deferred_paths["game/hook_error"].state == "restart-required"
+			and rejected.state.available == false
+			and contains(
+				rejected.state.latest_error.message,
+				"DMF rejected hook registration: error"
+			),
+		"a DMF error diagnostic cannot become a false applied status"
+	)
+	check(
+		harness.mod.error == original_error
+			and harness.mod.warning == original_warning,
+		"DMF logger methods are restored after an error rejection"
+	)
+end
+
+do
+	local harness = new_harness({ hook_false_method = "future_false" })
+	local runtime = harness.runtime
+	local rejected = add_module(runtime, "false_rejected_hook")
+	local original_error = harness.mod.error
+	local original_warning = harness.mod.warning
+
+	runtime:install_hook(
+		"false_rejected_hook",
+		"game/hook_false",
+		"future_false",
+		"safe",
+		function ()
+		end
+	)
+	runtime:_register_deferred_paths()
+	harness.registrations["game/hook_false"]({
+		future_false = function ()
+		end,
+	})
+
+	check(
+		runtime._deferred_paths["game/hook_false"].state == "restart-required"
+			and rejected.state.available == false
+			and contains(rejected.state.latest_error.message, "returned false"),
+		"an explicit future hook-API false result is rejected"
+	)
+	check(
+		harness.mod.error == original_error
+			and harness.mod.warning == original_warning,
+		"DMF logger methods are restored after an explicit false result"
+	)
 end
 
 -- Lifetime telemetry is preserved, while quarantine is based on a resettable

@@ -27,7 +27,7 @@ return {
 		en = "Correct Redirect Fire talent description",
 	},
 	veteran_redirect_tooltip_enabled_description = {
-		en = "Repairs the two exact Veteran buff-to-talent links that make Redirect Fire show Target Down's description.",
+		en = "Compatibility fallback for the two old broken Veteran buff-to-talent links. Darktide 1.12.4 fixed these upstream, so the module reports that and makes no change on the current game.",
 	},
 	zealot_prime_target_tooltip_enabled = {
 		en = "Correct Prime Target tactical-overlay text",
@@ -48,16 +48,22 @@ return {
 		en = "Optional workaround for persistent chain-weapon smoke. Preserves the power-down sound, but deliberately removes the normal particle tail. Disabled by default.",
 	},
 	servo_skull_scroll_enabled = {
-		en = "Prevent Servo-Skull mouse-wheel toggles (prototype)",
+		en = "Optional: isolate Servo-Skull mouse-wheel input",
 	},
 	servo_skull_scroll_enabled_description = {
-		en = "Opt-in: removes wheel-up/down only from the held Servo-Skull's private wield inputs. Wheel cycling away from the skull is unavailable while it is held.",
+		en = "Stronger opt-in control behaviour, separate from Darktide 1.12.4's wheel-bound activation fix. It blocks all wheel weapon cycling while the Servo-Skull is held, then restores it when the skull is put away.",
+	},
+	notification_queue_callbacks_enabled = {
+		en = "Preserve callbacks in the notification overflow queue",
+	},
+	notification_queue_callbacks_enabled_description = {
+		en = "Restores start and completion callbacks that Darktide 1.12.4 drops when a full notification feed drains its overflow queue.",
 	},
 	notification_dedupe_enabled = {
-		en = "Deduplicate safe notifications",
+		en = "Optional: deduplicate repeated safe notifications",
 	},
 	notification_dedupe_enabled_description = {
-		en = "Suppresses identical, callback-free default and alert notifications repeated inside a short window.",
+		en = "Suppresses identical, callback-free default and alert notifications inside a short window. Disabled by default because even a technically safe repeat can still be useful feedback.",
 	},
 	notification_dedupe_window_seconds = {
 		en = "Notification duplicate window (seconds)",
@@ -180,10 +186,10 @@ return {
 		en = "Makes wheel-down advance the Penances carousel and wheel-up go back. Controller and keyboard navigation are unchanged.",
 	},
 	path_of_trust_black_screen_enabled = {
-		en = "Recover from the final Path of Trust black screen",
+		en = "Legacy Path 09 black-screen fallback",
 	},
 	path_of_trust_black_screen_enabled_description = {
-		en = "Fades back to the Mourningstar if the final Path of Trust cinematic ends while its full-screen black overlay is still stranded.",
+		en = "Narrow fallback for the exact path_of_trust_09 terminal black state. Darktide 1.12.4 fixed a matching general cutscene-fade symptom, but the notes do not identify this exact scene, so the guarded fallback remains.",
 	},
 	gas_outline_recovery_enabled = {
 		en = "Restore outlines after dying in toxic gas",

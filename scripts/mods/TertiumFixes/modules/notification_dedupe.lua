@@ -92,8 +92,11 @@ function module:_prune(now, window)
 	end
 end
 
-function module:_is_duplicate(message_type, data, callback, sound_event, done_callback, delay)
-	if callback ~= nil or done_callback ~= nil or delay ~= nil then
+function module:_is_duplicate(message_type, data, add_callback, sound_event, done_callback, delay, start_callback)
+	if add_callback ~= nil
+		or done_callback ~= nil
+		or delay ~= nil
+		or start_callback ~= nil then
 		return false
 	end
 
@@ -131,9 +134,9 @@ function module:install()
 		"scripts/ui/constant_elements/elements/notification_feed/constant_element_notification_feed",
 		"event_add_notification_message",
 		"normal",
-		function (func, notification_feed, message_type, data, callback, sound_event, done_callback, delay)
+		function (func, notification_feed, message_type, data, add_callback, sound_event, done_callback, delay, start_callback)
 			if not runtime:is_active(self.id) then
-				return func(notification_feed, message_type, data, callback, sound_event, done_callback, delay)
+				return func(notification_feed, message_type, data, add_callback, sound_event, done_callback, delay, start_callback)
 			end
 
 			local ok, duplicate = runtime:run(
@@ -142,14 +145,15 @@ function module:install()
 				self,
 				message_type,
 				data,
-				callback,
+				add_callback,
 				sound_event,
 				done_callback,
-				delay
+				delay,
+				start_callback
 			)
 
 			if not ok then
-				return func(notification_feed, message_type, data, callback, sound_event, done_callback, delay)
+				return func(notification_feed, message_type, data, add_callback, sound_event, done_callback, delay, start_callback)
 			end
 
 			if duplicate then
@@ -159,7 +163,7 @@ function module:install()
 				return
 			end
 
-			return func(notification_feed, message_type, data, callback, sound_event, done_callback, delay)
+			return func(notification_feed, message_type, data, add_callback, sound_event, done_callback, delay, start_callback)
 		end
 	)
 

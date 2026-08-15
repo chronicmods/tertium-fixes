@@ -3,7 +3,7 @@ local mod = get_mod("TertiumFixes")
 local Runtime = {}
 
 Runtime.__index = Runtime
-Runtime.version = "0.5.1"
+Runtime.version = "0.5.2-unstable.1"
 local _unpack = unpack or table.unpack
 Runtime.defaults = {
 	auto_quarantine_enabled = true,
@@ -16,7 +16,8 @@ Runtime.defaults = {
 	power_overload_hud_enabled = true,
 	chain_smoke_cleanup_enabled = false,
 	servo_skull_scroll_enabled = false,
-	notification_dedupe_enabled = true,
+	notification_queue_callbacks_enabled = true,
+	notification_dedupe_enabled = false,
 	notification_dedupe_window_seconds = 2,
 	notification_include_mission = false,
 	localization_guard_enabled = true,
@@ -374,6 +375,78 @@ function Runtime:_protected_call(callback, ...)
 	return true, _unpack(results, 2, results.n)
 end
 
+function Runtime:_invoke_hook_api(hook_function, target, method_name, handler)
+	local diagnostic = nil
+	local raw_error = type(mod) == "table" and rawget(mod, "error") or nil
+	local raw_warning = type(mod) == "table" and rawget(mod, "warning") or nil
+	local resolved_error = mod.error
+	local resolved_warning = mod.warning
+	local shadowed = type(mod) == "table"
+		and type(resolved_error) == "function"
+		and type(resolved_warning) == "function"
+
+	local function shadow(level, original)
+		return function (self, message, ...)
+			if diagnostic == nil then
+				local ok_format, formatted = pcall(
+					string.format,
+					tostring(message),
+					...
+				)
+
+				diagnostic = level .. ": " .. _clean_error(
+					ok_format and formatted or message
+				)
+			end
+
+			return original(self, message, ...)
+		end
+	end
+
+	-- Current DMF returns nil for both a successful hook and every logged
+	-- rejection. Its registry is private, but registration is synchronous and
+	-- every non-throwing reject calls this mod's error or warning logger. Shadow
+	-- those two methods only for the call, forward them, and always restore the
+	-- exact raw fields afterwards. Nil with no diagnostic remains success.
+	if shadowed then
+		rawset(mod, "error", shadow("error", resolved_error))
+		rawset(mod, "warning", shadow("warning", resolved_warning))
+	end
+
+	local results = _pack(self:_protected_call(
+		hook_function,
+		mod,
+		target,
+		method_name,
+		handler
+	))
+
+	if shadowed then
+		rawset(mod, "error", raw_error)
+		rawset(mod, "warning", raw_warning)
+	end
+
+	if not results[1] then
+		return false, results[2]
+	end
+
+	if results[2] == false then
+		return false, {
+			message = "DMF hook API returned false",
+			traceback = "DMF hook API returned false",
+		}
+	end
+
+	if diagnostic ~= nil then
+		return false, {
+			message = "DMF rejected hook registration: " .. diagnostic,
+			traceback = "DMF rejected hook registration: " .. diagnostic,
+		}
+	end
+
+	return true
+end
+
 function Runtime:run_phase(module_id, phase, callback, ...)
 	local ok, a, b, c, d = self:_protected_call(callback, ...)
 
@@ -606,9 +679,8 @@ function Runtime:_apply_deferred_path(file_path, loaded_value)
 				}
 			)
 		else
-			local ok_hook, hook_error = self:_protected_call(
+			local ok_hook, hook_error = self:_invoke_hook_api(
 				hook_function,
-				mod,
 				loaded_value,
 				hook.method_name,
 				hook.handler
@@ -938,6 +1010,8 @@ local function _status_word(runtime, module)
 		return "restart-required"
 	elseif deferred.state == "failed" then
 		return "failed"
+	elseif module._fixed_upstream == true then
+		return "fixed upstream"
 	elseif not module.state.available then
 		return "unavailable"
 	elseif module.state.quarantined then

@@ -164,11 +164,11 @@ function module:runtime_status()
 		return "checking final fade"
 	end
 
-	return runtime:is_active(self.id) and "guarding" or "disabled"
+	return runtime:is_active(self.id) and "guarding legacy scene" or "disabled"
 end
 
 function module:describe()
-	return "releases only a stranded full-black fade after path_of_trust_09 ends"
+	return "narrow path_of_trust_09 fallback; 1.12.4 fixed a matching general symptom"
 end
 
 return module

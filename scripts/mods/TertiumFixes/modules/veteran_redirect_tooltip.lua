@@ -7,6 +7,7 @@ local module = {
 	setting_id = "veteran_redirect_tooltip_enabled",
 	_templates = nil,
 	_patches = {},
+	_fixed_upstream = false,
 }
 
 local TEMPLATE_PATH = "scripts/settings/buff/archetype_buff_templates/veteran_buff_templates"
@@ -51,19 +52,33 @@ function module:_apply()
 	end
 
 	local targets = {}
+	local upstream_fixed = true
 
 	for i = 1, #TARGET_KEYS do
 		local key = TARGET_KEYS[i]
 		local template = self._templates[key]
 		local related = type(template) == "table" and template.related_talents
 
-		if type(related) ~= "table"
-			or #related ~= 1
-			or related[1] ~= OLD_TALENT then
+		if type(related) ~= "table" or #related ~= 1 then
 			runtime:set_available(
 				self.id,
 				false,
-				"exact 1.12.3 Redirect Fire metadata no longer matches"
+				"exact 1.12.4 Redirect Fire metadata no longer matches"
+			)
+
+			return false
+		end
+
+		if related[1] == NEW_TALENT then
+			-- Darktide 1.12.4 corrected this metadata upstream. Record that
+			-- explicitly instead of pretending a patch was applied.
+		elseif related[1] == OLD_TALENT then
+			upstream_fixed = false
+		else
+			runtime:set_available(
+				self.id,
+				false,
+				"Redirect Fire metadata points at an unknown talent"
 			)
 
 			return false
@@ -74,6 +89,33 @@ function module:_apply()
 			original = related,
 		}
 	end
+
+	if upstream_fixed then
+		self._fixed_upstream = true
+		runtime:set_available(
+			self.id,
+			false,
+			"fixed upstream in Darktide 1.12.4; no patch applied"
+		)
+
+		return false
+	end
+
+	for i = 1, #targets do
+		local related = targets[i].original
+
+		if related[1] ~= OLD_TALENT then
+			runtime:set_available(
+				self.id,
+				false,
+				"mixed Redirect Fire metadata; no patch applied"
+			)
+
+			return false
+		end
+	end
+
+	self._fixed_upstream = false
 
 	for i = 1, #targets do
 		local target = targets[i]
@@ -136,10 +178,18 @@ function module:on_unload()
 end
 
 function module:runtime_status()
+	if self._fixed_upstream then
+		return "fixed upstream"
+	end
+
 	return #self._patches > 0 and "patched" or "inactive"
 end
 
 function module:describe()
+	if self._fixed_upstream then
+		return "Darktide 1.12.4 already links Redirect Fire to the correct talent"
+	end
+
 	return "guarded metadata-only correction on two exact buff templates"
 end
 

@@ -1,11 +1,37 @@
-# Tertium Fixes 0.5.1
+# Tertium Fixes 0.5.2-unstable.1
 
 Created and maintained by chronic.
 
 ![Tertium Fixes](assets/brand/tertium-fixes-hero.jpg)
 
-**[Download Tertium Fixes 0.5.1](releases/v0.5.1/TertiumFixes-v0.5.1.zip)**  
+**[Download the 0.5.2-unstable.1 preview](releases/v0.5.2-unstable.1/TertiumFixes-v0.5.2-unstable.1.zip)**
 Client-side repairs and cleanup for Darktide. Unofficial community mod.
+
+> This is the unstable preview branch. It targets Darktide 1.12.4 and is being
+> published separately for testing. The stable `main` branch and Nexus Main
+> file remain on 0.5.1.
+
+## What changed in this preview
+
+- Updated every game-source contract to the 1.12.4 snapshot.
+- Updated the notification path for Darktide's new `start_callback` argument.
+  The complete eight-argument call now passes through unchanged. Duplicate
+  suppression remains available as an opt-in, but is disabled by default.
+- Added a separate 1.12.4 repair for the notification overflow queue, which
+  stores start and completion callbacks but drops both when the queue drains.
+- Detects that Darktide 1.12.4 fixed Redirect Fire upstream. The module reports
+  `fixed upstream` and deliberately makes no change instead of claiming a hit.
+- Retains the narrow `path_of_trust_09` black-screen fallback because the 1.12.4
+  notes fix a matching general cutscene symptom without naming that exact scene.
+- Investigated reported ghost hits on Rashad and Atrox axes. No client-side
+  damage patch is included: Darktide's server owns damage and hit confirmation,
+  so changing local hitboxes or attack windows could only create false impact
+  feedback without making the rejected hit deal damage.
+- Added direct behavior coverage for every one of the 25 modules, including
+  tests that assert real state changes, exact cleanup counts, restoration, and
+  fail-open paths.
+
+The full evidence and limits are in [VERIFICATION.md](VERIFICATION.md).
 
 Tertium Fixes is an all-in-one collection of client-side repairs and cleanup for
 Darktide. It focuses on the irritating problems that can be fixed safely on the
@@ -14,9 +40,10 @@ lingering audio, broken visual effects, stale buff icons, and avoidable Lua
 memory pressure during long sessions.
 
 The default setup is intended to be install-and-play. Twenty-two of the
-twenty-four fixes are enabled immediately. The remaining two are optional
-workarounds with noticeable tradeoffs, so they stay off until you choose to use
-them. Every repair has its own switch.
+twenty-five module switches are enabled immediately. On Darktide 1.12.4 the
+Redirect Fire module detects the official correction and stays inert. The
+remaining three are optional behaviours with noticeable tradeoffs, so they
+stay off until you choose to use them. Every repair has its own switch.
 
 Tertium Fixes does not change weapon stats, talents, enemies, rewards,
 difficulty, damage, movement, cooldowns, or mission rules. It also does not
@@ -40,27 +67,32 @@ quality, or audio quality.
 
 ### Talents, buffs, and HUD
 
-- **Redirect Fire showing the wrong description** - corrects the Veteran talent
-  presentation link that can display Target Down's information instead.
+- **Redirect Fire showing the wrong description** - keeps the guarded repair
+  for the older broken metadata, but Darktide 1.12.4 has fixed this upstream.
+  The preview detects the correct link and performs no replacement.
 - **Prime Target missing tactical-overlay text** - restores the proper Zealot
   talent name and description where the overlay would otherwise show only an
   icon.
 - **Power Overload missing its ally-buff icon** - restores the intended icon and
   presentation information for the eight-second ally buff without changing the
   buff itself.
-- **Repeated duplicate notifications** - suppresses identical safe messages
-  repeated within a short window. Notifications with actions, delays, or special
-  behaviour are left alone. Mission messages are excluded by default because a
-  repeated objective update can be meaningful.
+- **Notification callbacks disappearing from the overflow queue** - restores
+  the exact start and completion callbacks that 1.12.4 stores when the feed is
+  full but fails to pass back when that queued notification is finally shown.
+- **Repeated duplicate notifications (optional)** - suppresses identical safe
+  messages inside a short window. Notifications with actions, delays, or special
+  behaviour are left alone. This is disabled by default because even a safe
+  repeated message can still be useful feedback.
 - **Broken localization values causing interface errors** - replaces invalid or
   missing text with either a visible diagnostic placeholder or blank text,
   depending on your setting.
 - **Expired buff icons remaining on the HUD** - removes consecutive expired
   entries that the normal cleanup pass can skip. Live buffs and their order are
   not changed.
-- **Final Path of Trust cinematic leaving a black screen** - releases the
-  stranded black overlay after that cinematic has genuinely finished. Ordinary
-  fades and other cinematics are ignored.
+- **Legacy Path 09 black-screen fallback** - watches only the exact
+  `path_of_trust_09` terminal black state. The 1.12.4 notes say a matching
+  general cutscene-fade problem was fixed, but they do not identify this exact
+  scene, so the narrow fallback remains instead of claiming an upstream fix.
 - **Outlines not returning after dying in toxic gas** - restores outlines when
   the relevant gas effect ends while the local player is dead. Gas gameplay is
   unchanged.
@@ -130,6 +162,11 @@ will put its own cleanup on standby if it detects that the collector is already
 owned elsewhere. Monitoring can also be kept on while cleanup permission is
 turned off.
 
+Before using this controller, disable every other mod or option that performs
+automatic Lua memory cleaning, garbage collection, or collector tuning. Restart
+Darktide after disabling them so two cleanup controllers cannot retain state in
+the same session. The Nexus description names the currently known conflicts.
+
 ### Heap meter and controls
 
 The meter shows current Lua heap use, capacity, percentage, and the current
@@ -161,10 +198,17 @@ particularly in longer sessions. The result still depends on hardware, drivers,
 graphics settings, mission conditions, and the current game version. It cannot
 remove network delay or guarantee a particular frame-rate increase.
 
-## Optional workarounds
+## Optional behaviours
 
-These are the two fixes disabled by default because each accepts a noticeable
-tradeoff.
+These are the three behaviours disabled by default because each accepts a
+noticeable tradeoff.
+
+### Notification deduplication
+
+Suppresses identical callback-free default and alert messages inside the chosen
+window. Anything with callbacks or timing passes through unchanged. This stays
+off by default because repetition can be meaningful feedback even when the call
+has no callback or delay.
 
 ### Aggressive chain-weapon smoke cleanup
 
@@ -174,10 +218,10 @@ short smoke tail. The power-down sound is preserved.
 
 ### Servo-Skull scroll isolation
 
-Removes mouse-wheel weapon switching only while the Servo-Skull is being held.
-This prevents wheel movement from unintentionally toggling away from the skull,
-but the wheel cannot cycle weapons until the skull is put away. Keyboard and
-controller selection remain available.
+This is a stronger control preference, separate from Darktide 1.12.4's fix for
+wheel-bound Servo-Skull activation interruption. It removes mouse-wheel weapon
+switching while the skull is held, so the wheel cannot cycle weapons until the
+skull is put away. Keyboard and controller selection remain available.
 
 ## Settings worth knowing
 
@@ -185,9 +229,10 @@ Most players can leave the defaults alone. The extra controls are there for
 people who want to tune behaviour or diagnose a particular problem.
 
 - **Notification duplicate window** sets how long an identical safe message is
-  treated as a repeat. The default is two seconds.
-- **Include mission notifications** also applies deduplication to matching
-  mission messages. This stays off by default.
+  treated as a repeat when optional deduplication is enabled. The default is
+  two seconds.
+- **Include mission notifications** also applies optional deduplication to
+  matching mission messages. This stays off by default.
 - **Localization fallback** chooses a visible placeholder or blank text when the
   game supplies an invalid text value.
 - **Permit automatic and manual cleanup** can be disabled to keep heap
@@ -250,6 +295,10 @@ current release.
 
 ## Compatibility and limits
 
+This unstable preview is source-contract tested against Darktide 1.12.4,
+snapshot `fffb2f1f8a38b42f61cc98610bda0dfdd2129914`. The compatibility gate must
+pass with no skipped source checks before the archive is built.
+
 Tertium Fixes is client-side. Other players do not need it installed and the
 host does not need to use it. Each repair is separated from the others. If a
 Darktide update changes an affected system, the repair is designed to leave the
@@ -263,6 +312,11 @@ routing problems, native engine faults, graphics-driver faults, operating-system
 faults, or missing game content that requires an official update. It provides
 targeted local repairs and workarounds, not a promise that every possible crash,
 disconnect, stutter, or black screen has one client-side solution.
+
+Automated source and behavior checks are not the same as broad live gameplay
+soak. This is intentionally an unstable/optional download while 1.12.4 live
+sessions are collected. `/tf_status` exposes per-module hits and actions so a
+hook being installed is not presented as a repair having fired.
 
 ## Troubleshooting
 

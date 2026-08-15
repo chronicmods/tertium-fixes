@@ -1,6 +1,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import process from "node:process";
+import { execFileSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 
 const testDir = path.dirname(fileURLToPath(import.meta.url));
@@ -68,6 +69,7 @@ const moduleNames = [
   "power_overload_hud",
   "chain_smoke_cleanup",
   "servo_skull_scroll",
+  "notification_queue_callbacks",
   "notification_dedupe",
   "localization_guard",
   "gc_pressure",
@@ -93,8 +95,11 @@ const behaviorTestNames = [
   "fx_handler_integrity_behavior.lua",
   "gc_pressure_behavior.lua",
   "input_and_buff_behavior.lua",
+  "metadata_repairs_behavior.lua",
+  "notification_dedupe_behavior.lua",
   "hive_scum_stimm_chime_behavior.lua",
   "psykhanium_source_guards_behavior.lua",
+  "remaining_repairs_behavior.lua",
   "runtime_hardening_behavior.lua",
   "runtime_performance_behavior.lua",
 ];
@@ -131,16 +136,16 @@ const discoveredBehaviorTests = fs
   .sort();
 
 check(
-  moduleNames.length === 24 &&
+  moduleNames.length === 25 &&
     JSON.stringify(discoveredModuleNames) ===
       JSON.stringify([...moduleNames].sort()),
-  "package module inventory is exactly all twenty-four production modules",
+  "package module inventory is exactly all twenty-five production modules",
 );
 check(
-  behaviorTestNames.length === 10 &&
+  behaviorTestNames.length === 13 &&
     JSON.stringify(discoveredBehaviorTests) ===
       JSON.stringify([...behaviorTestNames].sort()),
-  "package behavior inventory is exactly all ten Lua behavior suites",
+  "package behavior inventory is exactly all thirteen Lua behavior suites",
 );
 
 const entrypoint = read("scripts/mods/TertiumFixes/TertiumFixes.lua");
@@ -185,8 +190,8 @@ const entrypointModuleNames = [
 ].map((match) => match[1]);
 
 check(
-  entrypointModuleNames.length === 24 &&
-    new Set(entrypointModuleNames).size === 24 &&
+  entrypointModuleNames.length === 25 &&
+    new Set(entrypointModuleNames).size === 25 &&
     JSON.stringify([...entrypointModuleNames].sort()) ===
       JSON.stringify([...moduleNames].sort()),
   "entrypoint loads every production module exactly once and no others",
@@ -268,6 +273,12 @@ const expectedHooks = [
     "scripts/managers/localization/localization_manager",
     "_process_string",
     "raw localization-value hook",
+  ],
+  [
+    "notification_queue_callbacks",
+    "scripts/ui/constant_elements/elements/notification_feed/constant_element_notification_feed",
+    "_add_notification_message",
+    "notification overflow callback hook",
   ],
   [
     "notification_dedupe",
@@ -851,9 +862,10 @@ check(
 
 const notifications = modules.notification_dedupe;
 check(
-  notifications.includes("callback ~= nil") &&
+  notifications.includes("add_callback ~= nil") &&
     notifications.includes("done_callback ~= nil") &&
-    notifications.includes("delay ~= nil"),
+    notifications.includes("delay ~= nil") &&
+    notifications.includes("start_callback ~= nil"),
   "notification dedupe excludes calls with side effects or timing",
 );
 check(
@@ -871,9 +883,31 @@ check(
 check(
   notifications.includes("if not ok then") &&
     notifications.includes(
-      "return func(notification_feed, message_type, data, callback, sound_event, done_callback, delay)",
+      "return func(notification_feed, message_type, data, add_callback, sound_event, done_callback, delay, start_callback)",
     ),
-  "notification guard fails open to the original game call",
+  "notification guard fails open with the complete Darktide 1.12.4 call",
+);
+
+const notificationQueue = modules.notification_queue_callbacks;
+check(
+  notificationQueue.includes('rawget(notification_feed, "_queue_notifications")') &&
+    notificationQueue.includes("rawget(queue, 1)") &&
+    notificationQueue.includes('rawget(queued, "id") ~= notification_id') &&
+    notificationQueue.includes('rawget(queued, "data") ~= data'),
+  "notification overflow repair matches only the exact queue head being drained",
+);
+check(
+  notificationQueue.includes('rawget(queued, "start_callback")') &&
+    notificationQueue.includes('rawget(queued, "done_callback")') &&
+    notificationQueue.includes("runtime:record_action(self.id, restored)"),
+  "notification overflow repair restores and counts only missing queued callbacks",
+);
+check(
+  notificationQueue.includes("if ok and restored > 0 then") &&
+    notificationQueue.includes(
+      "return func(\n\t\t\t\tnotification_feed,\n\t\t\t\tmessage_type,",
+    ),
+  "notification overflow repair remains fail-open and calls the original method",
 );
 
 function scalar(value, allowNil) {
@@ -1153,19 +1187,25 @@ check(
   pathOfTrust.includes('"path_of_trust_09"') &&
     pathOfTrust.includes('rawget(cinematic_manager, "_active_story")') &&
     pathOfTrust.includes('rawget(queue, 1) == nil'),
-  "Path of Trust repair arms only after the exact final cinematic and an empty queue",
+  "Path of Trust fallback arms only after the exact final cinematic and an empty queue",
 );
 check(
   pathOfTrust.includes('rawget(hud, "_fading_in") ~= true') &&
     pathOfTrust.includes('rawget(hud, "_fade_duration") ~= nil') &&
     pathOfTrust.includes('rawget(hud, "_fade_out_data") ~= nil'),
-  "Path of Trust repair requires the exact stranded fully-black HUD state",
+  "Path of Trust fallback requires the exact stranded fully-black HUD state",
 );
 check(
   pathOfTrust.includes("REPAIR_FADE_SECONDS") &&
     pathOfTrust.includes("fade_out(") &&
     pathOfTrust.includes("COMPLETION_WINDOW_SECONDS"),
-  "Path of Trust repair uses the HUD's own fade-out path inside a bounded window",
+  "Path of Trust fallback uses the HUD's own fade-out path inside a bounded window",
+);
+check(
+  pathOfTrust.includes('return runtime:is_active(self.id) and "guarding legacy scene" or "disabled"') &&
+    pathOfTrust.includes("1.12.4 fixed a matching general symptom") &&
+    !pathOfTrust.includes("_fixed_upstream = true"),
+  "Path of Trust remains a legacy exact-scene fallback because 1.12.4 Path09 coverage is uncertain",
 );
 
 const gasOutline = modules.gas_outline_recovery;
@@ -1245,7 +1285,7 @@ check(
     effectSafety.includes('template.name ~= spec.name') &&
     effectSafety.includes('type(template.resources) ~= "table"') &&
     effectSafety.includes('type(template.stop) ~= "function"'),
-  "partial-effect guards require all seventeen exact 1.12.3 patch points",
+  "partial-effect guards require all seventeen exact 1.12.4 patch points",
 );
 check(
   effectSafety.includes('rawget(_G, "DEDICATED_SERVER") == true') &&
@@ -1294,7 +1334,8 @@ const moduleSettingDefaults = {
   power_overload_hud_enabled: "true",
   chain_smoke_cleanup_enabled: "false",
   servo_skull_scroll_enabled: "false",
-  notification_dedupe_enabled: "true",
+  notification_queue_callbacks_enabled: "true",
+  notification_dedupe_enabled: "false",
   localization_guard_enabled: "true",
   gc_enabled: "true",
   campaign_vox_cleanup_enabled: "true",
@@ -1318,11 +1359,11 @@ const fxSubfeatureDefaults = {
 };
 
 check(
-  moduleNames.length === 24 &&
-    Object.keys(moduleSettingDefaults).length === 24 &&
+  moduleNames.length === 25 &&
+    Object.keys(moduleSettingDefaults).length === 25 &&
     JSON.stringify(Object.keys(moduleSettingDefaults).sort()) ===
       JSON.stringify(Object.values(moduleSettingIds).sort()),
-  "core, settings, and module inventory share all twenty-four master-setting IDs",
+  "core, settings, and module inventory share all twenty-five master-setting IDs",
 );
 
 for (const [settingId, expectedDefault] of Object.entries(
@@ -1360,13 +1401,14 @@ check(
   Object.values(moduleSettingDefaults).filter((value) => value === "true")
     .length === 22 &&
     Object.values(moduleSettingDefaults).filter((value) => value === "false")
-      .length === 2 &&
+      .length === 3 &&
     JSON.stringify(disabledMasterSettingIds) ===
       JSON.stringify([
         "chain_smoke_cleanup_enabled",
+        "notification_dedupe_enabled",
         "servo_skull_scroll_enabled",
       ]),
-  "release defaults contain exactly twenty-two enabled modules and the two named opt-in prototypes",
+  "preview defaults contain exactly twenty-two enabled switches and the three named opt-in behaviors",
 );
 check(
   luaDefault(core, "auto_quarantine_enabled") === "true" &&
@@ -1420,8 +1462,8 @@ check(
 );
 
 check(
-  core.includes("Runtime.version = \"0.5.1\""),
-  "runtime reports release version 0.5.1",
+  core.includes("Runtime.version = \"0.5.2-unstable.1\""),
+  "runtime reports release version 0.5.2-unstable.1",
 );
 check(
   core.includes("function Runtime:defer_file") &&
@@ -1504,12 +1546,12 @@ for (const phrase of [
   check(readme.toLowerCase().includes(phrase.toLowerCase()), `README covers ${phrase}`);
 }
 check(
-  readme.includes("# Tertium Fixes 0.5.1") &&
+  readme.includes("# Tertium Fixes 0.5.2-unstable.1") &&
     readme.toLowerCase().includes("twenty-two") &&
-    readme.toLowerCase().includes("remaining two") &&
-    readme.toLowerCase().includes("twenty-four") &&
+    readme.toLowerCase().includes("remaining three") &&
+    readme.toLowerCase().includes("twenty-five") &&
     readme.includes("Created and maintained by chronic."),
-  "README states v0.5.1, the 24/22/2 module split, and the author",
+  "README states v0.5.2-unstable.1, the 25/22/3 switch split, and the author",
 );
 
 const compatibilityBlockStart = gc.indexOf("local CONTROLLER_GROUPS = {");
@@ -1562,6 +1604,7 @@ check(
 
 const sourceRootCandidates = [
   process.env.DARKTIDE_SOURCE_ROOT,
+  process.argv[2],
   path.resolve(modRoot, "..", "..", "vendor", "Darktide-Source-Code"),
 ].filter(Boolean);
 const sourceRoot = sourceRootCandidates.find((candidate) =>
@@ -1569,6 +1612,23 @@ const sourceRoot = sourceRootCandidates.find((candidate) =>
 );
 
 if (sourceRoot) {
+  let sourceCommit = "";
+
+  try {
+    sourceCommit = execFileSync(
+      "git",
+      ["-C", sourceRoot, "rev-parse", "HEAD"],
+      { encoding: "utf8" },
+    ).trim();
+  } catch {
+    sourceCommit = "";
+  }
+
+  check(
+    sourceCommit === "fffb2f1f8a38b42f61cc98610bda0dfdd2129914",
+    "source gate is pinned to exact Darktide 1.12.4 snapshot fffb2f1",
+  );
+
   const sourceChecks = [
     [
       "scripts/managers/input/input_manager.lua",
@@ -1628,7 +1688,27 @@ if (sourceRoot) {
     ],
     [
       "scripts/ui/constant_elements/elements/notification_feed/constant_element_notification_feed.lua",
-      "ConstantElementNotificationFeed.event_add_notification_message = function (self, message_type, data, callback, sound_event, done_callback, delay)",
+      "ConstantElementNotificationFeed.event_add_notification_message = function (self, message_type, data, add_callback, sound_event, done_callback, delay, start_callback)",
+    ],
+    [
+      "scripts/ui/constant_elements/elements/notification_feed/constant_element_notification_feed.lua",
+      "ConstantElementNotificationFeed._add_notification_message = function (self, message_type, data, notification_id, start_callback, sound_event, done_callback)",
+    ],
+    [
+      "scripts/managers/cinematic/cinematic_manager.lua",
+      "CinematicManager.update = function (self, dt, t)",
+    ],
+    [
+      "scripts/ui/hud/elements/cutscene_fading/hud_element_cutscene_fading.lua",
+      "HudElementCutsceneFading.update = function (self, dt, t, ui_renderer, render_settings, input_service)",
+    ],
+    [
+      "scripts/settings/cinematic_scene/templates/path_of_trust_09.lua",
+      "path_of_trust_09 = {",
+    ],
+    [
+      "scripts/extension_systems/cinematic_scene/cinematic_scene_system.lua",
+      '[CINEMATIC_NAMES.path_of_trust_09] = "cutscene_view"',
     ],
     [
       "scripts/ui/hud/elements/player_buffs/hud_element_player_buffs_polling.lua",
@@ -1824,6 +1904,162 @@ if (sourceRoot) {
     );
   }
 
+  const notificationSource = fs.readFileSync(
+    path.join(
+      sourceRoot,
+      "scripts/ui/constant_elements/elements/notification_feed/constant_element_notification_feed.lua",
+    ),
+    "utf8",
+  );
+  const notificationBody = notificationSource.slice(
+    notificationSource.indexOf(
+      "ConstantElementNotificationFeed.event_add_notification_message =",
+    ),
+    notificationSource.indexOf(
+      "ConstantElementNotificationFeed.event_update_notification_progress =",
+    ),
+  );
+  check(
+    notificationBody.includes("start_callback = start_callback") &&
+      notificationBody.includes(
+        "self:_add_notification_message(message_type, data, notification_id, start_callback, sound_event, done_callback)",
+      ),
+    "Darktide 1.12.4 notification flow owns and forwards the new start callback",
+  );
+
+  const notificationRemoveBody = notificationSource.slice(
+    notificationSource.indexOf(
+      "ConstantElementNotificationFeed._remove_notification =",
+    ),
+    notificationSource.indexOf(
+      "ConstantElementNotificationFeed._create_notification_entry =",
+    ),
+  );
+  check(
+    notificationRemoveBody.includes(
+      "local callback = queued_notification.callback",
+    ) &&
+      notificationRemoveBody.includes(
+        "self:_add_notification_message(message_type, queued_data, notification_id, callback, sound_event)",
+      ) &&
+      !notificationRemoveBody.includes("queued_notification.start_callback") &&
+      !notificationRemoveBody.includes("queued_notification.done_callback"),
+    "Darktide 1.12.4 overflow drain drops both stored notification callbacks",
+  );
+
+  const veteranSource = fs.readFileSync(
+    path.join(
+      sourceRoot,
+      "scripts/settings/buff/archetype_buff_templates/veteran_buff_templates.lua",
+    ),
+    "utf8",
+  );
+  const redirectBlock = veteranSource.slice(
+    veteranSource.indexOf("templates.veteran_improved_tag_allied_buff ="),
+    veteranSource.indexOf("templates.veteran_clip_size ="),
+  );
+  check(
+    redirectBlock.includes('"veteran_improved_tag_dead_coherency_bonus"') &&
+      !redirectBlock.includes('"veteran_improved_tag_dead_bonus"'),
+    "Darktide 1.12.4 already fixes Redirect Fire metadata upstream",
+  );
+
+  const zealotSource = fs.readFileSync(
+    path.join(
+      sourceRoot,
+      "scripts/settings/buff/archetype_buff_templates/zealot_buff_templates.lua",
+    ),
+    "utf8",
+  );
+  const primeTargetBlock = zealotSource.slice(
+    zealotSource.indexOf("templates.zealot_elite_kills_empowers_effect ="),
+    zealotSource.indexOf("templates.zealot_uninterruptible_no_slow_heavies ="),
+  );
+  check(
+    primeTargetBlock.includes('hud_icon = "content/ui/textures/icons/buffs/hud/zealot/zealot_elite_kills_empowers"') &&
+      !primeTargetBlock.includes("related_talents"),
+    "Darktide 1.12.4 Prime Target effect still lacks its tactical-overlay talent link",
+  );
+
+  const crypticSource = fs.readFileSync(
+    path.join(
+      sourceRoot,
+      "scripts/settings/buff/archetype_buff_templates/cryptic_buff_templates.lua",
+    ),
+    "utf8",
+  );
+  const overloadTargetBlock = crypticSource.slice(
+    crypticSource.indexOf("templates.cryptic_overload_keystone_allies_buff ="),
+    crypticSource.indexOf(
+      "templates.cryptic_overload_keystone_increase_damage_taken_debuff =",
+    ),
+  );
+  check(
+    overloadTargetBlock.includes("duration = overload_keystone_talent_settings.allies_buff_duration") &&
+      !overloadTargetBlock.includes("always_show_in_hud") &&
+      !overloadTargetBlock.includes("hud_icon") &&
+      !overloadTargetBlock.includes("related_talents"),
+    "Darktide 1.12.4 Power Overload ally buff still lacks presentation metadata",
+  );
+
+  const tacticalOverlaySource = fs.readFileSync(
+    path.join(
+      sourceRoot,
+      "scripts/ui/hud/elements/tactical_overlay/hud_element_tactical_overlay.lua",
+    ),
+    "utf8",
+  );
+  check(
+    tacticalOverlaySource.includes(
+      "local buff_related_talent = buff_template.related_talents and buff_template.related_talents[1]",
+    ) &&
+      tacticalOverlaySource.includes("talent_name == buff_related_talent"),
+    "current Tactical Overlay consumes the related_talents links repaired by Prime Target and Redirect Fire",
+  );
+
+  const buffConsumerSource = fs.readFileSync(
+    path.join(
+      sourceRoot,
+      "scripts/extension_systems/buff/buffs/buff.lua",
+    ),
+    "utf8",
+  );
+  check(
+    buffConsumerSource.includes("return_table.show = self:_show_in_hud()") &&
+      buffConsumerSource.includes("return_table.hud_icon = self:_hud_icon()") &&
+      buffConsumerSource.includes(
+        "return_table.hud_icon_gradient_map = self:hud_icon_gradient_map()",
+      ) &&
+      buffConsumerSource.includes(
+        "return_table.hud_priority = self:hud_priority()",
+      ) &&
+      buffConsumerSource.includes("local always_show_in_hud = template.always_show_in_hud"),
+    "current Buff HUD data consumes every presentation field added by Power Overload",
+  );
+
+  const playerBuffConsumerSource = fs.readFileSync(
+    path.join(
+      sourceRoot,
+      "scripts/ui/hud/elements/player_buffs/hud_element_player_buffs_polling.lua",
+    ),
+    "utf8",
+  );
+  check(
+    playerBuffConsumerSource.includes(
+      "local buff_hud_data = buff_instance:get_hud_data()",
+    ) &&
+      playerBuffConsumerSource.includes(
+        "local icon = buff_hud_data.hud_icon",
+      ) &&
+      playerBuffConsumerSource.includes(
+        "local icon_gradient_map = buff_hud_data.hud_icon_gradient_map",
+      ) &&
+      playerBuffConsumerSource.includes(
+        "local hud_priority = buff_hud_data.hud_priority",
+      ),
+    "current player-buff HUD consumes Power Overload's returned icon and priority data",
+  );
+
   const chainSource = fs.readFileSync(
     path.join(
       sourceRoot,
@@ -1885,9 +2121,8 @@ if (sourceRoot) {
     "pinned player-buff update removes entries while traversing the array forwards",
   );
 } else {
-  skips += 1;
-  process.stdout.write(
-    "SKIP pinned source signature checks (set DARKTIDE_SOURCE_ROOT to enable)\n",
+  fail(
+    "pinned Darktide 1.12.4 source is required (set DARKTIDE_SOURCE_ROOT or pass the source root as argv[2])",
   );
 }
 

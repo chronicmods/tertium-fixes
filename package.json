@@ -1,0 +1,15 @@
+{
+  "name": "tertium-fixes",
+  "version": "0.5.2-unstable.1",
+  "private": true,
+  "description": "Reproducible source-contract and Lua behavior gate for Tertium Fixes.",
+  "scripts": {
+    "test": "node tests/run_gate.mjs",
+    "test:smoke": "node tests/smoke_test.mjs",
+    "test:behavior": "node tests/run_behavior.mjs"
+  },
+  "devDependencies": {
+    "fengari": "0.1.5",
+    "fengari-node-cli": "0.1.0"
+  }
+}

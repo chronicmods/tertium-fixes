@@ -1,14 +1,14 @@
-# Tertium Fixes 0.5.1
+# Tertium Fixes 0.5.2-unstable.1
 
 Created and maintained by chronic.
 
-I put Tertium Fixes together to deal with the client-side problems that kept getting in the way: stuck menus, missed inputs, incorrect talent and buff information, stale HUD entries, looping audio, effects that are not released properly, and avoidable Lua memory pressure during long sessions. It keeps all of those repairs in one place and only touches problems that can be handled safely on the player's side.
+This is the separate unstable preview for Darktide 1.12.4. It does not replace the 0.5.1 Main file. I put Tertium Fixes together to deal with the client-side problems that kept getting in the way: stuck menus, missed inputs, incorrect talent and buff information, stale HUD entries, looping audio, effects that are not released properly, and avoidable Lua memory pressure during long sessions. It keeps all of those repairs in one place and only touches problems that can be handled safely on the player's side.
 
-I've set the defaults up so it should work without any adjustment. Twenty-two of the twenty-four main repairs are enabled immediately. I left the remaining two disabled because they are optional workarounds with visible or control-related tradeoffs. Every repair can still be switched on or off separately.
+I've set the defaults up so it should work without any adjustment. Twenty-two of the twenty-five module switches are enabled immediately. On Darktide 1.12.4 the Redirect Fire module sees the official correction and stays inert. I left the remaining three disabled because they are optional behaviours with visible, control-related, or information-suppression tradeoffs. Every repair can still be switched on or off separately.
 
 The mod does not change weapon statistics, talents, enemies, rewards, difficulty, damage, movement, cooldowns, progression, or mission rules. It does not lower texture quality, lighting, resolution, animation quality, normal particle quality, or audio quality.
 
-Version 0.5.1 also fixes the percentage signs used by the heap-meter position settings. Those labels could previously cause a localization error while the mod was loading.
+Version 0.5.2-unstable.1 updates the game-source contracts to Darktide 1.12.4 and preserves the new start callback added to the notification path. It also repairs a separate 1.12.4 overflow-queue bug that stores start and completion callbacks but drops both when the queued notification is finally shown. Duplicate suppression remains available as an opt-in and is disabled by default. Darktide fixed the Redirect Fire presentation link upstream, so this preview detects that and reports it instead of applying a fake patch.
 
 ## Main fixes
 
@@ -34,7 +34,7 @@ Corrects the mouse-wheel direction in the Penances overview so it matches the su
 
 **Correct Redirect Fire talent description**
 
-Repairs the presentation link that can make Redirect Fire display Target Down's information. This affects the displayed Veteran talent text only. It does not change the talent's effect or balance.
+The guarded repair remains for the older broken metadata, but Darktide 1.12.4 now has the correct presentation link. On the current game this module reports `fixed upstream` and makes no change. It never changes the talent's effect or balance.
 
 **Correct Prime Target tactical-overlay text**
 
@@ -44,9 +44,13 @@ Restores the correct name and description for the Prime Target effect where the 
 
 Restores the intended icon and presentation information for the eight-second Power Overload ally buff. Buff strength, duration, stacking, and damage are not changed.
 
-**Deduplicate safe notifications**
+**Preserve notification overflow callbacks**
 
-Suppresses identical basic notifications repeated within a short period. Messages that contain actions, delays, or special behaviour are left alone. Mission notifications are excluded by default because a repeated objective update can be meaningful.
+Restores the exact start and completion callbacks that Darktide 1.12.4 stores when the visible feed is full but fails to pass back when the overflow queue drains. Normal direct notifications and mismatched queue entries pass through unchanged.
+
+**Deduplicate safe notifications (optional)**
+
+Suppresses identical basic notifications repeated within a short period. Messages that contain actions, delays, or special behaviour are left alone. This is disabled by default because even a callback-free repeat can still be useful feedback. Mission notifications remain excluded unless separately enabled.
 
 **Guard invalid localization keys**
 
@@ -56,9 +60,9 @@ Prevents invalid or missing text values from entering the normal interface text 
 
 Removes expired buff entries that can be skipped when several are cleared in sequence. Live buffs and their order are not changed.
 
-**Recover from the final Path of Trust black screen**
+**Legacy Path 09 black-screen fallback**
 
-Releases the stranded full-screen black overlay after the final Path of Trust cinematic has genuinely finished. Ordinary fades and unrelated cinematics are ignored.
+Watches only the exact `path_of_trust_09` terminal black state. Darktide 1.12.4 says a matching general cutscene-fade problem was fixed, but the notes do not identify this exact scene. The narrow guarded fallback therefore remains without claiming that Path 09 itself is still broken or was fixed upstream.
 
 **Restore outlines after dying in toxic gas**
 
@@ -124,7 +128,11 @@ Cleanup can also run shortly after selected transitions between the Mourningstar
 
 The optional ten-minute cleanup is disabled by default. A full Lua cleanup can produce a brief frame-time hitch, particularly when a large amount of memory has accumulated. The manual cleanup key can cause the same type of hitch.
 
-Only one active feature can safely control Lua cleanup at a time. Tertium Fixes automatically places its cleanup actions on standby if the collector is already being controlled elsewhere. Heap monitoring remains available, and cleanup permission can be disabled separately at any time.
+### Required compatibility step: disable other memory-cleaning mods
+
+Before using Tertium Fixes' Lua cleanup controller, disable **SMOG**, **MemLeakFix**, **FPS Doctor**, and any other mod or option that performs automatic Lua memory cleaning, garbage collection, or collector tuning. Do not run two cleanup controllers together. Restart Darktide after disabling them so no old collector state remains in the session.
+
+Tertium Fixes has a standby check for the known controllers above, but that is a last safety barrier rather than support for running them together. If you want to keep another memory-cleaning mod, turn off **Permit automatic and manual cleanup** in Tertium Fixes and use only its monitoring/status features.
 
 ### Heap meter
 
@@ -156,9 +164,13 @@ The optional chain-weapon smoke workaround is the single deliberate visual excep
 
 These changes are intended to improve consistency and reduce avoidable client work, particularly during longer sessions. Results still depend on hardware, drivers, graphics settings, mission conditions, and the current game version. The mod cannot remove online delay or guarantee a particular frame-rate increase.
 
-## Optional workarounds
+## Optional behaviours
 
-I left the following two main repairs disabled by default because each has a noticeable tradeoff.
+I left the following three behaviours disabled by default because each has a noticeable tradeoff.
+
+**Deduplicate repeated safe notifications**
+
+Suppresses identical callback-free default and alert messages inside the selected window. Anything with callbacks or timing passes through unchanged. Repetition can still be meaningful feedback, so this stays opt-in.
 
 **Aggressively stop chain-weapon smoke**
 
@@ -166,7 +178,7 @@ Stops the affected smoke effect during chain-weapon power-down. This can prevent
 
 **Prevent Servo-Skull mouse-wheel toggles**
 
-Removes mouse-wheel weapon switching only while the Servo-Skull is being held. This prevents wheel movement unintentionally switching away from the skull, but the wheel cannot cycle weapons until the skull is put away. Keyboard and controller selection remain available.
+This is a stronger control preference, separate from Darktide 1.12.4's fix for wheel-bound Servo-Skull activation interruption. It removes mouse-wheel weapon switching while the skull is held, so the wheel cannot cycle weapons until the skull is put away. Keyboard and controller selection remain available.
 
 ## Complete options guide
 
@@ -174,10 +186,15 @@ Every main repair described above has its own checkbox. The following settings c
 
 ### Notification options
 
+**Deduplicate repeated safe notifications**
+Default: Disabled.
+
+Enables the optional duplicate-suppression window for callback-free default and alert messages. It does not control the separate overflow-callback repair.
+
 **Notification duplicate window**  
 Default: 2 seconds. Range: 1 to 10 seconds.
 
-Sets how long an identical safe notification is treated as a duplicate. A longer window removes repeats that arrive further apart, while a shorter window allows the same message to appear again sooner.
+Sets how long an identical safe notification is treated as a duplicate while optional deduplication is enabled. A longer window removes repeats that arrive further apart, while a shorter window allows the same message to appear again sooner.
 
 **Include mission notifications**  
 Default: Disabled.
@@ -374,7 +391,7 @@ Check the fallback Lua heap capacity. It should match the configured Lua heap li
 
 **Manual cleanup is blocked**
 
-Confirm that the Lua heap controller and cleanup permission are enabled. `/tf_gc status` shows whether cleanup is currently available.
+Confirm that the Lua heap controller and cleanup permission are enabled. Also disable SMOG, MemLeakFix, FPS Doctor, and any other automatic Lua memory-cleaning mod, then restart the game. `/tf_gc status` shows whether cleanup is currently available.
 
 **The Hive Scum stimm chime is silent after spawning**
 
@@ -382,7 +399,7 @@ This is intentional. The first ready state after joining, spawning, reconnecting
 
 **A setting causes an unwanted visual or control change**
 
-Check the two optional workarounds first. Both are disabled by default. Turning off the affected setting restores normal behaviour.
+Check the three optional behaviours first. All are disabled by default. Turning off the affected setting restores normal behaviour.
 
 ## Uninstalling
 

@@ -47,9 +47,14 @@ return {
 				default_value = false,
 			},
 			{
-				setting_id = "notification_dedupe_enabled",
+				setting_id = "notification_queue_callbacks_enabled",
 				type = "checkbox",
 				default_value = true,
+			},
+			{
+				setting_id = "notification_dedupe_enabled",
+				type = "checkbox",
+				default_value = false,
 			},
 			{
 				setting_id = "notification_dedupe_window_seconds",
