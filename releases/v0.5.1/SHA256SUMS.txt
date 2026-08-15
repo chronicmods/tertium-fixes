@@ -1,0 +1,2 @@
+dab21adf08ec5a4ce644036b14481ad518bdd01262f8ec7c08600e6b029c1ccc  TertiumFixes-v0.5.1.zip
+ea5bacdc2105bb6584f7d3254d156f9686dd59821b0a2e6812eba70fc796b137  TertiumFixes-Nexus-Description-v0.5.1.txt
