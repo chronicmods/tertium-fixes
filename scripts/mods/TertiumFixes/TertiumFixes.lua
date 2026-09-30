@@ -13,11 +13,15 @@ if not core_ok or type(runtime) ~= "table" then
 end
 
 mod._tf_runtime = runtime
+mod:info("Version %s", runtime.version)
 
 local module_paths = {
 	"TertiumFixes/scripts/mods/TertiumFixes/modules/cursor_stack",
 	"TertiumFixes/scripts/mods/TertiumFixes/modules/input_device_handoff",
+	"TertiumFixes/scripts/mods/TertiumFixes/modules/input_retry",
 	"TertiumFixes/scripts/mods/TertiumFixes/modules/rumble_apply",
+	"TertiumFixes/scripts/mods/TertiumFixes/modules/ui_resource_cleanup",
+	"TertiumFixes/scripts/mods/TertiumFixes/modules/social_roster_portrait",
 	"TertiumFixes/scripts/mods/TertiumFixes/modules/veteran_redirect_tooltip",
 	"TertiumFixes/scripts/mods/TertiumFixes/modules/zealot_prime_target_tooltip",
 	"TertiumFixes/scripts/mods/TertiumFixes/modules/power_overload_hud",
@@ -36,10 +40,12 @@ local module_paths = {
 	"TertiumFixes/scripts/mods/TertiumFixes/modules/effect_template_safety",
 	"TertiumFixes/scripts/mods/TertiumFixes/modules/event_listener_cleanup",
 	"TertiumFixes/scripts/mods/TertiumFixes/modules/audio_source_cleanup",
+	"TertiumFixes/scripts/mods/TertiumFixes/modules/weapon_effect_transitions",
 	"TertiumFixes/scripts/mods/TertiumFixes/modules/fx_handler_integrity",
 	"TertiumFixes/scripts/mods/TertiumFixes/modules/stimm_field_deleted_extension_guard",
 	"TertiumFixes/scripts/mods/TertiumFixes/modules/hive_scum_stimm_chime",
 	"TertiumFixes/scripts/mods/TertiumFixes/modules/training_grounds_danger_index_guard",
+	"TertiumFixes/scripts/mods/TertiumFixes/modules/graphics_presets",
 }
 
 for i = 1, #module_paths do
@@ -134,6 +140,13 @@ end
 
 mod:command("tf_status", mod:localize("command_status_description"), function ()
 	runtime:print_status()
+end)
+
+mod:command("tf_graphics", mod:localize("command_graphics_description"), function (action)
+	if action == "restore" then
+		mod:set("graphics_presets_enabled", false, true)
+	end
+	runtime:print_status("graphics_presets")
 end)
 
 mod:command("tf_reset", mod:localize("command_reset_description"), function (module_id)

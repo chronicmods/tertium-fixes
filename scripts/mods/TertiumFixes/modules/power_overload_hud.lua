@@ -42,6 +42,7 @@ function module:_apply()
 	if self._patch then
 		return true
 	end
+	if self._templates == nil then return false end
 
 	local target = self._templates and self._templates[TARGET_KEY]
 	local source = self._templates and self._templates[SOURCE_KEY]
@@ -60,7 +61,7 @@ function module:_apply()
 		or type(source.related_talents) ~= "table"
 		or #source.related_talents ~= 1
 		or source.related_talents[1] ~= "cryptic_overload_keystone" then
-		runtime:set_available(self.id, false, "exact 1.12.4 Power Overload templates no longer match")
+		runtime:set_available(self.id, false, "Power Overload templates have changed; leaving them alone")
 
 		return false
 	end
@@ -113,7 +114,11 @@ function module:install()
 			return
 		end
 
-		self._templates = templates
+		if self._templates ~= templates then
+			self:_restore()
+			self._templates = templates
+			runtime:set_available(self.id, true)
+		end
 
 		if runtime:is_active(self.id) then
 			self:_apply()
@@ -145,6 +150,14 @@ end
 
 function module:on_unload()
 	self:_restore()
+end
+
+function module:reset()
+	self:_restore()
+	if self._templates and runtime:mod_is_enabled() and runtime:get(self.setting_id) == true then
+		runtime:set_available(self.id, true)
+		self:_apply()
+	end
 end
 
 function module:runtime_status()

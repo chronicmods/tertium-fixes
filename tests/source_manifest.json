@@ -1,0 +1,461 @@
+{
+  "game_version": "1.13.0-b802981",
+  "steam_build": "25492122",
+  "content_revision": "138030",
+  "extractor": "limn 0.7.2",
+  "decompiler": "luajit-decompiler-v2 1443316 with -m",
+  "files": {
+    "scripts/backend/master_items.lua": {
+      "source": "76f660b32ed4b73868ac3b676e7abf5cc763941db49770764ab7b1f154bb1e27",
+      "bytecode": "b025e3dca821cd8d5e3c6ea682d07c18575591cb242640b19a81d73c6c227df0"
+    },
+    "scripts/extension_systems/ability/player_unit_ability_extension.lua": {
+      "source": "cb52142bcc2aff9579339fea055ae8fb00d7e2d5ae3d290c2c8dcc761266d6bd",
+      "bytecode": "4f6a0d8923237c344a434cba29f4ddfaee318af9c45c49b4127a78bbf2715358"
+    },
+    "scripts/extension_systems/action_input/action_input_parser.lua": {
+      "source": "39d5d6ebae662505799b325cd0a203bbd7ef1c146ef26b50232aba9f2d622475",
+      "bytecode": "7d0f8370f50cf1c4c1b471018ca948ba484141c4fa30f417232803d8d9d807b3"
+    },
+    "scripts/extension_systems/buff/buffs/buff.lua": {
+      "source": "866105a44d1ebb33a990314cc44d88aaacebef2a8af65aee4f3250e3ca8850e6",
+      "bytecode": "da8c08d92f3a2a933e7f9966aa20cbe38c7e94ad65c4768b0bfc7e1759444c90"
+    },
+    "scripts/extension_systems/cinematic_scene/cinematic_scene_system.lua": {
+      "source": "52e090975d3db9575a9c02239daaa28895c941b3301284194f761f3a19dd94bd",
+      "bytecode": "0fbb824fff7f7ef0b4e4147e308fff31aabff8cd8536e00703edef8a144b3b15"
+    },
+    "scripts/extension_systems/dialogue/dialogue_extension.lua": {
+      "source": "9529da26fa4d1112c5b89019dfb544fe415866e684138f1b3ea3729989af7651",
+      "bytecode": "9d6e251a0df90977ca618f00a24a1caeadb586b3b95777f026c09e3ec86004da"
+    },
+    "scripts/extension_systems/dialogue/dialogue_queries.lua": {
+      "source": "8093db0d80d2a7179463c4253877470e5ac567732d77b612e2979e7c9c439e88",
+      "bytecode": "c8025ba1f10d98a5459e90e7cb4a7fff42dc8756b527be96c039e6e1fa059078"
+    },
+    "scripts/extension_systems/fx/fx_system.lua": {
+      "source": "105cfc2f9654577898da2c1eee486a1f652ccccd6936df98b1303c7307734a19",
+      "bytecode": "f25b7085df1ed4f80e1b5a5075c1c2b5106027d62fcaecdbbea5b17e27e8f370"
+    },
+    "scripts/extension_systems/fx/player_unit_fx_extension.lua": {
+      "source": "89927fb2f2f759b882c81148bdeda8d8d8158d4b84aa95edbab971e25c6be96d",
+      "bytecode": "20c03a06f9909f30c76e0f3d3888f09f7679ee3a4888b28dca694bb00dab3b94"
+    },
+    "scripts/extension_systems/fx/utilities/effect_templates_handler.lua": {
+      "source": "8b65ff509e7e3a7966b0b698f0ab22fd7b4da1e74ffc26ab67805aa5e4bef8ce",
+      "bytecode": "9bd92be5048dc3ef0f1bd750db45fe126cb4f5fe5e0153056fd212eda5efab28"
+    },
+    "scripts/extension_systems/proximity/side_relation_gameplay_logic/proximity_broker_stimm_field.lua": {
+      "source": "117b926ac91badee83e969fe4ed1f18edc847a56bd192860c51e634786afc43a",
+      "bytecode": "a8285805cef2aba39f8b339cc99113788134f816b5fa078d885142d47e739dc9"
+    },
+    "scripts/extension_systems/visual_loadout/utilities/player_unit_visual_loadout.lua": {
+      "source": "62c9da750f1900ae1ac14bcdc7520526788522406d86b0e6446cdefa22816e65",
+      "bytecode": "922ef90affa2dc183d3e5616a5c0b65a694a57a495f9f7ddd2c4e9f107fe01ed"
+    },
+    "scripts/extension_systems/visual_loadout/utilities/visual_loadout_extract_data.lua": {
+      "source": "404af8818ac2d77b706ef8a55beda82d671119e2ef4296c973d73d85164e5952",
+      "bytecode": "dde460a4236d9a2b8513780dc657051ba961d35be498c1ba90c129786a26d593"
+    },
+    "scripts/extension_systems/visual_loadout/wieldable_slot_scripts/chain_weapon_effects.lua": {
+      "source": "5187ae6a7d9510668c29fc6d8410195dbb9045051f03d0e52c4824e36b4d0859",
+      "bytecode": "3c1f5fedd45cb2746c8746b2b01b79ddd566879e0b220de01a4bf824e8868f7f"
+    },
+    "scripts/extension_systems/visual_loadout/wieldable_slot_scripts/wieldable_slot_script_interface.lua": {
+      "source": "b8839d9628e17da78b862f41d1b249356ba9596f8b9f37c781bb9d4000fa1b95",
+      "bytecode": "8a9962cc45de662b8650c1181aae8969162ec97e4baf93775ad3e1d91d84c0f3"
+    },
+    "scripts/extension_systems/visual_loadout/wieldable_slot_scripts/zealot_relic_effects.lua": {
+      "source": "841ccbc5a6f31617672496209e5ba375a47b4447ecac5f5ce04587b934099df5",
+      "bytecode": "5553d7d49817ebee58d5097ae60bd8c6b22243cd511a32b1704faa96758783d5"
+    },
+    "scripts/foundation/managers/package/utilities/item_package.lua": {
+      "source": "8ec474750c3df371b507d9872fc4bbeefed29a8b3448421c1567e8d363813ef7",
+      "bytecode": "f0105905eb4ea8e0528a863d569b82274d4c2a5f3887205e856bf814feeab7a7"
+    },
+    "scripts/foundation/utilities/parameters/default_dev_parameters.lua": {
+      "source": "d499e3de1068b2b6964726348c46b3300ba7693d68d32013a1b9465a35227185",
+      "bytecode": "90c90f050bf7d8a0ad55c7db5c0922a2912852f6dc02a403bf2bbdbd66aa2b05"
+    },
+    "scripts/foundation/utilities/parameters/default_game_parameters.lua": {
+      "source": "39af628b6c46290a06e1ab098151d58e42bff55205825902d113caeb1043e3ba",
+      "bytecode": "9d4b6cb570e9ec0c9657fbbba4782d05d61c0c095af5da282204eb6d0b930ea4"
+    },
+    "scripts/game_states/boot/boot_state_resolve_parameters.lua": {
+      "source": "7f3d611a7491d8fbad4f021d9318fde4758ae31f0b22c5d0f0158b40e9886e66",
+      "bytecode": "63bd09c483cc7ccc0952972a7c20f019dc2e97867a18691c57b52b703998a77c"
+    },
+    "scripts/managers/cinematic/cinematic_manager.lua": {
+      "source": "acf1f987f92a4f56b1e213416c7b8105a0448a42b3d6a06d37aa0deb77e34aa7",
+      "bytecode": "1b012ec3a9df8e1638dd02fef3ab599c7a2805e53c732ead88f84d2f9b1fb27c"
+    },
+    "scripts/managers/game_mode/game_modes/game_mode_survival.lua": {
+      "source": "130a16ed2e7ff8abd1ee3a34e1b0190f8cb9f63fb4eb00ceb2d5b22415d862b4",
+      "bytecode": "f11718324d732b397f86ddf00c24d734b86d1020ad8280ec8c8047234348d8c3"
+    },
+    "scripts/managers/input/input_device.lua": {
+      "source": "b75f097d1d6fa37d062b24f7ef7e5730b6df0717537dd1aed65fedc06cf32afa",
+      "bytecode": "83fe1a9f6653a6d492dbeb227540e3954579d081827d3cb0a5f8766a7ae0c765"
+    },
+    "scripts/managers/input/input_manager.lua": {
+      "source": "b598b3cf937b88ddbedce64475cd9df57143b68e9628ca5c90675e5a0e6b2181",
+      "bytecode": "ee2174cbbf946f677c60cf7b8255636edf74c3e8f420339c3089d8db0a2a34ad"
+    },
+    "scripts/managers/localization/localization_manager.lua": {
+      "source": "bd249542ee3b3bc2358e9e2fae0ddb6d190d2216ab026bb857212d13b0c4f5f9",
+      "bytecode": "81dc43cecbfaa64e08e2ef8016414c584eccface72c21a57f6537d54a9aee349"
+    },
+    "scripts/managers/player/player_game_states/human_input_handler.lua": {
+      "source": "507b9e3c24b6763f90e39a809e2486e84293e16a0773f2857be3523188677e9d",
+      "bytecode": "54fdaa870ad6aafd150e6dfc2710c7df01daff59d571655467407e25458c9a97"
+    },
+    "scripts/managers/player/player_game_states/input_handler_settings.lua": {
+      "source": "9f32c2963ddc67067788d62923fc7bd1ede42895913cc8a00babd1487c486a8c",
+      "bytecode": "e9d595fdf311f125551c4a675ebd09197f14cf3687808b531089bb7755dda69a"
+    },
+    "scripts/managers/ui/ui_font_settings.lua": {
+      "source": "57b1227610303023f54c02261a527026b89a1d9f9f3c7b06f422b24e5c9b89f9",
+      "bytecode": "77cee61db2147616a93c4886508fa898c84989f0a68ad7f1d1144c0d3bf6920b"
+    },
+    "scripts/managers/ui/ui_manager.lua": {
+      "source": "b254929c99a88196feee91e9d671e79b30b21ed342d31539eab31728ee0f8491",
+      "bytecode": "363fb83301fd54330949ccd1b42b9263fe244ca4eaff4896ac4005345a4f9740"
+    },
+    "scripts/managers/ui/ui_widget.lua": {
+      "source": "3168129fb6b72af66948e99f613a6dc107e336b6c44fbb3ed74cfacd9e6aadf4",
+      "bytecode": "cf396e6fc680521ff0b5f6327c1642b118a9ccf7a7624c756233854fa9302591"
+    },
+    "scripts/managers/unit_job/job_interface.lua": {
+      "source": "6ed90cb6f3c5d22737f8e2484d988597cdf0e9e7599078aae1f94e22bda8e8f7",
+      "bytecode": "9692e297a7cb996d6eaa3066ddaeb85248d74ef3d22fac237a9910551ac710c4"
+    },
+    "scripts/settings/ability/archetype_talents/talents/zealot_talents.lua": {
+      "source": "bc2ef972b810f69a1cf5b6101eadb052433ec402e50f5a26af01a149379ce875",
+      "bytecode": "670aee0ed03d5ca052be77a0a1f1a2baf520db5c8ed28b809ee19e377908fa47"
+    },
+    "scripts/settings/ability/player_abilities/abilities/broker_abilities.lua": {
+      "source": "c34cf1c45243e184c7f753f03ded7b23a0d4af0c36af9d17d9be88abe238e129",
+      "bytecode": "e625a0f4c67d5b6957f2e8109a836b0e34e75069a6909d24163bd3856162b6e7"
+    },
+    "scripts/settings/ability/special_rules_settings.lua": {
+      "source": "44c782517ccc7b38444c381a548fcbbea60440a518f412c511b48219d40abe49",
+      "bytecode": "a13d01ab1bf48404eacc2230eff8d32e14f4e8b8a21ca62c88718b954a0632b0"
+    },
+    "scripts/settings/action/action_handler_settings.lua": {
+      "source": "21e143103b4390f82e28fc14a6602eb759bf5b04e093f2a5489021026ffee262",
+      "bytecode": "6e685cb862284fd0dac637019911ca7e23b4d8899ee5b37674ff55ebd1bed05c"
+    },
+    "scripts/settings/buff/archetype_buff_templates/cryptic_buff_templates.lua": {
+      "source": "fe2ac13a20d52b5ca9c39278f1ef101d35741686cff10e90e3faf463645efe8c",
+      "bytecode": "5cd4fbeda0ccc9edafd3a9b16e807a789a6a53498c3f60826ac9caa6300e5952"
+    },
+    "scripts/settings/buff/archetype_buff_templates/veteran_buff_templates.lua": {
+      "source": "84af5cc25d97bf3704dfa86d9501473888938ca0e543bdbdf9c84df3c9fad3b6",
+      "bytecode": "06449c3ddf77e4805f6955a5cbeb61fe006bf0353c5a21fe9e7a8a7052a6b52a"
+    },
+    "scripts/settings/buff/archetype_buff_templates/zealot_buff_templates.lua": {
+      "source": "a8c068133ae428160f3b366735e3241d95bc26cf778685a96de4d8d97a1b2c7c",
+      "bytecode": "4eb5ed5c3ab222fefb8b9181e9e8a1acba2abc0188715408df3c64baa226ce25"
+    },
+    "scripts/settings/buff/buff_settings.lua": {
+      "source": "3aacda88cdc442b93b4309ecf78d59907771de1dce4e74574e81f68d2addb142",
+      "bytecode": "57a631a99151472b5f18aacb288b70d1efc28dcf2d1801df8917834ccde1e41a"
+    },
+    "scripts/settings/buff/buff_templates.lua": {
+      "source": "1e9115b2b8fa9ab5266ac3eace79904f471df6966350928ca569094172432074",
+      "bytecode": "0a4997fffea189f9129be94d36b53df13d00e629869febe9ecbe08b7271bac2a"
+    },
+    "scripts/settings/buff/helper_functions/shared_buff_functions.lua": {
+      "source": "704dc86bdab0ce3ec5da7cb481844f5d3f29fb4fd7db8def1f9933d21a41baf9",
+      "bytecode": "c4f136822f194febbf2590374b94c53ae84cdf2887a4d979dd3ea3b3014bc0b8"
+    },
+    "scripts/settings/buff/hordes_buffs/hordes_buffs_data.lua": {
+      "source": "79e387e6b70d95aee8ea616e61ff75290c0a28b74cc5ae93f6de73a50e069d92",
+      "bytecode": "4d730eac937c8f84903fb3f46743401128ebc472ed8c3c179eb4a78473fabb7e"
+    },
+    "scripts/settings/buff/liquid_area_buff_templates.lua": {
+      "source": "ae9bc8b700af4853db19d0fdc88302b8849fa51e8c6ad21f87f80922313cafd6",
+      "bytecode": "82d9f810938f191466f82e6d831482285df549ed4e5510ed5345cf68dc52f982"
+    },
+    "scripts/settings/cinematic_scene/templates/path_of_trust_09.lua": {
+      "source": "d78969f1add9b1edae15fadca32df5086898aeaa471adec8c3e58bbc1f5e5cfc",
+      "bytecode": "58c9741dc13edad4dfbd4011d0e0d0fb2a551a73f3d729b0fc72aff6dd38baa4"
+    },
+    "scripts/settings/companion/companion_servo_skull_settings.lua": {
+      "source": "45ba3bf28cc84cf6a4a4a392b64d1fbd32965214e9ffcf6df8e3f7af78ccc165",
+      "bytecode": "845a757b82d610644ee82a12aa36931e9369a7ef62f2c89c4d2a7fad47b1a215"
+    },
+    "scripts/settings/damage/attack_settings.lua": {
+      "source": "b2dfa0c4717521047167514ee8be895d164a59193c59798a18695d83f2ce06e1",
+      "bytecode": "bd62f49c8b50b50581e93079baf58cf72e55d5c827b4f24efa6d7ef5f668aab7"
+    },
+    "scripts/settings/damage/explosion_templates.lua": {
+      "source": "15ada3a3d715536974d2862ed1bf4a09c7e8ea4f345d782cb48939291ec4a1ed",
+      "bytecode": "5d06d5e027a5c7a5b612963debb3d55f95d6f6badfe1ed9df74a9dac5a40d3d7"
+    },
+    "scripts/settings/damage/power_level_settings.lua": {
+      "source": "bba655d8c07d4fbddb19e2d62a52021d567f90ab4121b616fe2ecf7ca7c086b8",
+      "bytecode": "70811f9f8c12ed98700ae36182cc45e8a90d7f85c90acd4616b5cb1a679c698d"
+    },
+    "scripts/settings/dialogue/dialogue_breed_settings.lua": {
+      "source": "9557e27c3a32897eff0f55dcec12d92a4a3aea9cc7fede904c3f5d77193ebfbc",
+      "bytecode": "863e11faf7f07c9390f4102150caf7446cde6fb5368ca7273f1186c5521d0c2d"
+    },
+    "scripts/settings/dialogue/dialogue_settings.lua": {
+      "source": "4fc3613c5fbbc685bbe524ef1bd3fcdf97e7830fa360e1d643d53033e53b6ae0",
+      "bytecode": "e9e2d239d22ae9f386beb43322e7e84daf53a2a05b56ad4c5d9e4d6fe338ff94"
+    },
+    "scripts/settings/dialogue/voice_fx_preset_settings.lua": {
+      "source": "78672935bb16f15f6d14940b6de8c25943720ed294fb2a42f29fa695dda6e1c3",
+      "bytecode": "368f448072d4584c3e3f856383bb8bc407c7a3ac3f23bd3d7c779009deb89d9c"
+    },
+    "scripts/settings/dialogue/wwise_vo_routing_settings.lua": {
+      "source": "686efaaccb4b48636e89a73354dd1c302d578162665aab6ab7965329374a9d8d",
+      "bytecode": "c3808e4ef8ddba325e7a791c82ec686d13a4a510d49a56d8be03d37d052392cb"
+    },
+    "scripts/settings/difficulty/danger_settings.lua": {
+      "source": "2d3fa58fcdeb8fdb2f4eab401e590702a2a84f9475f9567bf0a645e5df3321ff",
+      "bytecode": "ef441b4500fbeb731b625d673deef39cbb1107da047cfff66b592885cf290a60"
+    },
+    "scripts/settings/effects/line_effects.lua": {
+      "source": "ffa607fac26385e2b747df94f96c3cffafda650b68a9b0aae984dfa4806f88db",
+      "bytecode": "f33b9088d5fa0674c60659a5282f5c0dd5b4940e7acd82c3a5165a20b130ed71"
+    },
+    "scripts/settings/equipment/weapon_templates/grenades/cryptic_servo_skull_order_point.lua": {
+      "source": "5f500e579b84969303af081e5eb0325659506ab1f19b99d7713c69b3ba99b2f7",
+      "bytecode": "88159e3d9bfa0602a1591335bdf6c8e52552c89ecc9bbf57e296b5ad19c9023b"
+    },
+    "scripts/settings/fx/effect_templates.lua": {
+      "source": "8fa7d6b0ecf4acc8b041040c81769abb2fa04eb862420ea28dd3caaae6ba0b7f",
+      "bytecode": "ef86b6ceafb98af4af241b2700e685cecb9425cce6225ffaa52700479d35d0f2"
+    },
+    "scripts/settings/fx/effect_templates/arc_chain_to_position.lua": {
+      "source": "f0bd471e30a42ad9adc4455826c7767b285fa3d9c83275b101a741039ad42744",
+      "bytecode": "67960d3680917d54904b7d2126239be081261dada189a8755c1da9a977cd01fb"
+    },
+    "scripts/settings/fx/effect_templates/chaos_poxwalker_bomber_foley.lua": {
+      "source": "ecbeb07ec830adf28c5756f6c898f49d1a95f62c1b4933225366bbdf1d5b3260",
+      "bytecode": "98664fe2b62daf133d3d1a2a435937e439a6f1285b439a90f27376e848936719"
+    },
+    "scripts/settings/fx/effect_templates/companion_servo_skull_aim_on_ground_effect.lua": {
+      "source": "aa49340b8ebf5ca0d99945d1bce8a964c0928283e8670fbd98b2e16cc02dcea7",
+      "bytecode": "a7105692efaf16c6697b3038618c395e698f66c5e57b40172b848d9ca064df62"
+    },
+    "scripts/settings/fx/effect_templates/companion_servo_skull_charged_shooting_effect.lua": {
+      "source": "441db81be60a01d006bf996dae6bce0acd7edd6c0e5173a10c45103f3ad2a960",
+      "bytecode": "0da982db2539604a9fca6e8d950b0fdcd1c19d758699396cfae98f047f8a012e"
+    },
+    "scripts/settings/fx/effect_templates/companion_servo_skull_empowered_effect.lua": {
+      "source": "9bb426d4b21225872d77f067ca4e66206135720dbebb01c044956cc1be73c8cb",
+      "bytecode": "5df3330636fe28926d85a74e605ff35d53d34e3b41e3d7d4e935286ac85bf6bf"
+    },
+    "scripts/settings/fx/effect_templates/companion_servo_skull_flamer.lua": {
+      "source": "14e5654bab139176eed5ddb03caf4dafc13b96f9ca80aae32d6e74cb3848ead2",
+      "bytecode": "5e4f771743e03c0bd3dc0ddf0c76fbc2b8628bc2ed38c25d8a40ad0249ed28f3"
+    },
+    "scripts/settings/fx/effect_templates/companion_servo_skull_moving_effect.lua": {
+      "source": "fd25a8263cdeafbcf54f53d87d34f0d3cea1b1f2c5e29c421b9b2349b47814fa",
+      "bytecode": "8995c7328aca379e42cdd10a7b97eb5bac429838ca111cadc410484a53ccf7e3"
+    },
+    "scripts/settings/fx/effect_templates/cultist_mutant_charge_foley.lua": {
+      "source": "3d6ee02f03eacce69252e24bfbc7c702650c6f9f6e685926e6dc973e12a3070e",
+      "bytecode": "a3562f657d685de801a8457fdcacfdda77e0de5e81d4ebb8de49d84bb527330a"
+    },
+    "scripts/settings/fx/effect_templates/renegade_flamer_mutator_throw.lua": {
+      "source": "015aa5cf6f898ef2e77f0b7918fb2d05c45dcd735e8f76b0a02ad86bbe8a9ab5",
+      "bytecode": "90ce096217a8176693c97ec8c46413c351b0644a5cbffca9d56d14cac3206bfa"
+    },
+    "scripts/settings/options/settings_utils.lua": {
+      "source": "6a25549a48c306f84ef329dbb8c95ab628faeea89c55d3d0b5d0f5a9eef3a44d",
+      "bytecode": "9baec76286c448813fbb43f2b69bc100b1c9e907668c8a7a00ccc6feb67dff77"
+    },
+    "scripts/settings/particles/player_character_looping_particle_aliases.lua": {
+      "source": "77afb52669a37bad5b9e2d5cbc12cd0203592f982c5988dce09a82ec4d3fd7c1",
+      "bytecode": "5fc6a3cbb08ae62402579e3ed6a26b3ac527cf5736d1e2b751d9f50540179a82"
+    },
+    "scripts/settings/player_character/player_character_constants.lua": {
+      "source": "8c6cc04cd7fefc933c93da43c5b69a8db673523d374c30d35e3dffeb94db151e",
+      "bytecode": "dc367ecd7685e373d485b354bcd1901a62dac646b8c84f3803ac24d3b5a41123"
+    },
+    "scripts/settings/region/region_constants.lua": {
+      "source": "bd163efa77f29eda796eb97f683b285b10bd50e2d804e7c6b5009132a568ac15",
+      "bytecode": "ce2cdd7b0eab139ee9b442976ab548deeb92bf02d74e8c97741513f164f4bbbc"
+    },
+    "scripts/settings/sound/player_character_looping_sound_aliases.lua": {
+      "source": "917e3a711532260f0c44833a3e1580855768686856ac2d59aea5325c862e3bbe",
+      "bytecode": "9e4871338938ab24f05bb13ba9c64da265e5d3e47398b92a71e4097ef49f38df"
+    },
+    "scripts/settings/talent/talent_settings.lua": {
+      "source": "60c666a221ff6af6830afd213e71db25b9d8833f424847d585b36fa134c5baae",
+      "bytecode": "3383342a60fe37b9031d177bc2319a809ea8e0c1bd4bcd2906adefb73d95cbb7"
+    },
+    "scripts/settings/talent/talent_settings_cryptic.lua": {
+      "source": "ce9b15bec57f04a19bd117a5da552f9b4475476a84364267fee8c3d9558e3741",
+      "bytecode": "59ca2d9bdaf9d6573a5e24f642d8ddd3d17e6fc6aeeeea2dcee7f6d09934c73c"
+    },
+    "scripts/settings/ui/ui_settings.lua": {
+      "source": "baf179a2d9eaaddd4a122b0da791573829b928bea9ab84272332781e4b8e3436",
+      "bytecode": "880f01fd181c8515022efb4175aa0601d34d8c180fe1784e37a5ecc60fb56270"
+    },
+    "scripts/settings/ui/ui_sound_events.lua": {
+      "source": "3144a65aabcaebc6cd18b32d84300f20d933953854106256ce53914465bac8e1",
+      "bytecode": "abaeccb0399419b98de7b42f3b15b1d2543b711b7f7427c80268b7595e35f3ba"
+    },
+    "scripts/settings/ui/ui_workspace_settings.lua": {
+      "source": "057f6aaa845adea0b5c75f10283030ede55cebfbf85f6e7d78351f499a5cfccb",
+      "bytecode": "eaf1d70411c548ee3e2b2b10c265eade1da2d4e6a0e43cedcd58d52769e2a3c1"
+    },
+    "scripts/ui/constant_elements/elements/notification_feed/constant_element_notification_feed.lua": {
+      "source": "c16f3c44a11b2d1e0e18f58f5ab7a78b61dc6db30d870f525fb9a81e6565c636",
+      "bytecode": "9d098091c0b6cbb3d8e365dd4fddf0d2aa9a9a21645e5bfb1dfafe7f2beda3be"
+    },
+    "scripts/ui/default_pass_styles.lua": {
+      "source": "4c840fc91c8e207c50fa91b043f041a2f89b69fe5859f334315c97d54495c42b",
+      "bytecode": "2ddc70aab3d0ab274fe8b25480184b973e4ac7579efc220ef322adcffcf850aa"
+    },
+    "scripts/ui/hud/elements/cutscene_fading/hud_element_cutscene_fading.lua": {
+      "source": "c79e85747cd2d0e4603a271e70b0b07c0c040c185cc15c5ac43778d1d62f9f18",
+      "bytecode": "bf37a2ae6ee7bc8d92b85779392a5fa641df108dec4a06f1b9bdc06e4b480ed5"
+    },
+    "scripts/ui/hud/elements/player_buffs/hud_element_player_buffs_polling.lua": {
+      "source": "0a159e892185b3c2be959ea81aab09a61f21be70ee7d118f23161fdde34d3caf",
+      "bytecode": "437377c1e10d1798fa197023e3badd1f33a7a4322e59b5021976f309c8764eac"
+    },
+    "scripts/ui/hud/elements/tactical_overlay/hud_element_tactical_overlay.lua": {
+      "source": "f519369105da390c6656ecf3504daad32c7acf471b05913abdc35faf2b2e0280",
+      "bytecode": "da1ab42e80b56079256b1665f09b864e91d13f654c3b6ffccdcee807a205193e"
+    },
+    "scripts/ui/item_icon_loader_ui.lua": {
+      "source": "21a78d4c675443381850931eb0c4367cd23a44fb6508867a53b77e34cd076650",
+      "bytecode": "8f60ae7a23dbfa07d5616e6061679ac63a5e5b322dd3a8e8163806cd8f5cba60"
+    },
+    "scripts/ui/pass_templates/button_pass_templates.lua": {
+      "source": "5efec2bdd2bde6b084a5403a0c4d407a4576374027286cfc88e1ce76a1bb7456",
+      "bytecode": "bc3ad05768b3f8a48943ab5833238de5c1a8852db3ce54504fd9854be6cc0a39"
+    },
+    "scripts/ui/pass_templates/scrollbar_pass_templates.lua": {
+      "source": "e86bb013db42c13d2eda33792f7f91916325373621ef9a4e4e85aad1e7c3b7e3",
+      "bytecode": "ad767f4afe765b420792d78513b6a979caaf23a3815cc6fd87a4d6253b5f4c82"
+    },
+    "scripts/ui/pass_templates/stepper_pass_templates.lua": {
+      "source": "a87410d2e4e4e8ba7320b54312f48f160ba9c27a1fbdcacaed885aecde99df82",
+      "bytecode": "5033c8926607e225ea53ec8d12d7bc46ad0a3dc34abf3c8316047d16952ad06b"
+    },
+    "scripts/ui/portrait_ui.lua": {
+      "source": "e97fee3a623e74ffd9b7c7202a390242bbf268fc3022fb2e97f6cbabe67b4f8a",
+      "bytecode": "bb3108a9e1c01160f8bee1cf4469678a0bb314b07bff42641c89772a24f3ef5b"
+    },
+    "scripts/ui/render_target_icon_generator_base.lua": {
+      "source": "235b308a79e8fdc51c04c0aaae71deff3bc6b2a6abba5bc3bcd900a396f83a65",
+      "bytecode": "764e832952377193b4c46e5d2dc45f09152dd3f22080f0ad0de2b40839f4513e"
+    },
+    "scripts/ui/view_elements/view_element_campaign_mission_list/view_element_campaign_mission_list.lua": {
+      "source": "ac6b2cbc287c82ff4dcb3b157f15073bb5194fd985dec59d069d92ea1a0db3b2",
+      "bytecode": "cd61b8b85d5e84dae9da3208edab2069b7701216bf97a05afdf1edd73c74ac3d"
+    },
+    "scripts/ui/view_elements/view_element_campaign_mission_list/view_element_campaign_mission_list_definitions.lua": {
+      "source": "be3435cb7501d03363f29633247d9e1a847c8e28abec3ec00be06f1fd0c2fd40",
+      "bytecode": "4a7047872a03ebf2a9a14d5033fe73e5333bc4b96f840cd97c4071ce1c07971b"
+    },
+    "scripts/ui/view_elements/view_element_mission_board_difficulty_selector/view_element_mission_board_difficulty_selector.lua": {
+      "source": "bec2da4802396100a819c9d49cff0bd207563f2c9f2493249888562c1501b2d1",
+      "bytecode": "e0d8484608447b2fda0bc37da6269b6c8c5c293eff04c82167fad1200c735b1c"
+    },
+    "scripts/ui/views/group_finder_view/group_finder_view.lua": {
+      "source": "192e5ce2a6f56028d5be80b95f5d640af74097ba6335dd330cffad7da903b03c",
+      "bytecode": "201dc1cf89b2e88aff835428416c31f6a28d8ac5f3220818542ca209c24361f3"
+    },
+    "scripts/ui/views/penance_overview_view/penance_overview_view.lua": {
+      "source": "3e1b4afda8b97a1c44fe5bff76cc3326ea2e77dfdcae564921a1cca77ac7e499",
+      "bytecode": "0f452735ba63f3e07e79bc343773b9c620dc95778c78043d8b7cd37710bb2afd"
+    },
+    "scripts/ui/views/social_menu_roster_view/social_menu_roster_view.lua": {
+      "source": "fdf32dd1be1189522b00e1bddbbc55286fb790a007abe9e0653f34dd2305042a",
+      "bytecode": "949565ca6bcacdbc24468e2ec78201114ab56faaa277aee13463ee42bd04128e"
+    },
+    "scripts/ui/views/social_menu_roster_view/social_menu_roster_view_definitions.lua": {
+      "source": "b4c82bf98a602463ccf42c87b5b3c3370eb8cd19dbb4ecda108940421134fdbd",
+      "bytecode": "401fbd5b6e4bfa23543ea229b95731e28b1a9380cdeaf4ba84fa45646f92e05e"
+    },
+    "scripts/ui/views/social_menu_roster_view/social_menu_roster_view_settings.lua": {
+      "source": "a6438c480f4b5dd915f8d3f11a99ed6abc6aba6baa443f55bd4275d5d68d543c",
+      "bytecode": "1309faa41c9d2e5185144c38b63e8a40258ded617a5d2580fa948323ba4a3da8"
+    },
+    "scripts/ui/views/social_menu_roster_view/social_menu_roster_view_styles.lua": {
+      "source": "4ba9cfc6f75d0391bf80e8040770c73e87a89f74e3b2fff38af0ff8848131685",
+      "bytecode": "256ea8fbba313296ffba2e5e6bb287a0b1b0e934eddc4c66d1ae5b503a445707"
+    },
+    "scripts/ui/views/social_menu_view/social_menu_view_settings.lua": {
+      "source": "4b6aa5b31bd909bf3d1ef7494452871e5532fc0454b9e46f64907c8dbfa61905",
+      "bytecode": "18ab28e8cc07f3c6056234eca29d5cde3707521a3eb271d4f6995ec6b7b38f35"
+    },
+    "scripts/ui/views/views.lua": {
+      "source": "f946dcf9e88130a9783fa8868f4c941ae1f04246b8dd699b3b47f8c3ad000e27",
+      "bytecode": "689a2e42ee51f09a7a7d49c0bb1e115b12015e359cc02992260263eb6502deb9"
+    },
+    "scripts/ui/weapon_icon_ui.lua": {
+      "source": "2c9946035c331b491e2211fa41797ca82b89d7d7c919a5f45de9d7d739cf1bff",
+      "bytecode": "fdfecb9b86b9ceac9ed475fc040a99e34b5ed35ac0ebce406b63ba2d9bff3038"
+    },
+    "scripts/utilities/action/action_handler.lua": {
+      "source": "20832d8e1061b5314ac861403437a2d9ea1704bc96f8c1980d5b9900cbba6923",
+      "bytecode": "b637786fd3dbff24682eb231e365c9d7f4d908e28069c64701f1f1c550375e9e"
+    },
+    "scripts/utilities/attack/explosion.lua": {
+      "source": "389ae7173b91fc98f61759356052642a55b14249d01d2efc561efffc77b248e9",
+      "bytecode": "3cf0f433c7208eee226367ddcd207fa492030d7871224c8acd2999952de056e8"
+    },
+    "scripts/utilities/breed.lua": {
+      "source": "9ee4d59aed514b8b30963086cd19b705f5ad5893549f852bdc9b2f83579fe19f",
+      "bytecode": "c3768065bf89a424154010447d177964d4c77e0f58633c3a88c3b24f9d6e4ace"
+    },
+    "scripts/utilities/companion/companion_servo_skull_ability.lua": {
+      "source": "39025f8e250c0e2cf63ad3b8bff9690e890a9afe0325c0b5d4bbc76d526889e2",
+      "bytecode": "6b22628c569ccb0fa845e6553acbe82d290d7980ee4764d05b86fdad9a00e6dc"
+    },
+    "scripts/utilities/companion_visual_loadout.lua": {
+      "source": "9222aec354e910ba6f9a4e8aa5db54beefccf527fc56c4825fa5eaa1875c63d7",
+      "bytecode": "5adc95ced018d5cae94e54c677ba7d5054c33030f842399823c7c36627d5ea14"
+    },
+    "scripts/utilities/component.lua": {
+      "source": "516640158690f66d95cae78026ed4ea20e8aeb56f1cc8282fd4434842bc1bf09",
+      "bytecode": "9475319e5572402b09036a53e23f4933e1a26581e35ad766c33fe8f700c70b01"
+    },
+    "scripts/utilities/expeditions/expedition_loot_handler.lua": {
+      "source": "dd37c5855c20bf753c9847f6e7410744135d1df8069a09672167bc405501e591",
+      "bytecode": "96f3d5ad7ce6fbec1c5d72c131ba8eef35fa18b4a1fe67c0125c5f762dfe8daf"
+    },
+    "scripts/utilities/fixed_frame.lua": {
+      "source": "c3b0199a889c71122b3e9fe9054b4e03f11f7fee35d421517e4f14b29c594546",
+      "bytecode": "5e4e61bd3b1e13cf1e08671dcc2825c387f67212ece9e1e72d044d2256b56393"
+    },
+    "scripts/utilities/minion_visual_loadout.lua": {
+      "source": "e082cb0541e4d4699bb405e6aadc9341476ec4d1740f38ad5e04ca58251a095a",
+      "bytecode": "c5dcdd7162bea93069ce1e004c0287b142309a62cdbe9fe57ba2fb57415b9cc4"
+    },
+    "scripts/utilities/player_voice_grunts.lua": {
+      "source": "49a95588641602113a3ad284023a0bf96a2008c8bf77188851a5105ae9ecb96c",
+      "bytecode": "80f50d9b1b34eb46ff522bdd1f92406cf9fd20778e8cfe538bbc3fea4e30c0d4"
+    },
+    "scripts/utilities/players/player_compositions.lua": {
+      "source": "ccc19268b129e7c4b993ed4ff6a7d2d0e6a8254a40d5f7ccdfbd99ae9ade5698",
+      "bytecode": "420a70cc70ab7093c582953486785fc8c7d75af2b697f95653f26748bf016b41"
+    },
+    "scripts/utilities/profile_utils.lua": {
+      "source": "2d297dfe38bb095ab3290391dd97f61fb6a9b270d7babca637ab4de1a3c0ccc5",
+      "bytecode": "feb2ca561cfe33a3b8d6ecfdada8a5acab97a5d5e4f62ecbe43ad2a4d488f400"
+    },
+    "scripts/utilities/ui/options.lua": {
+      "source": "71a17cc7aa01b70b9697f378e8889553e02d17c9613a4d56dc6b915ff4bd40e3",
+      "bytecode": "ec9bad2757bc23a8ac13c5c9e2e3597f63af306109c56f26097e8602548c73c5"
+    },
+    "scripts/utilities/ui/text.lua": {
+      "source": "39e7f899df950a4d020a32378c6dff4592af3b14d43fbbe4e7b5d03592a9ae71",
+      "bytecode": "2c1d3afb4f9f31d5e74b11eaea61ab5536b9b142ada58b4e12b7d793a4016874"
+    },
+    "scripts/utilities/vo.lua": {
+      "source": "08601a7599cceee30860a9686aab29a2e2efac44880b998d1246891a5df91572",
+      "bytecode": "ce5ea89d6062591ad8a4778fa60221207ffc90a701149a29d76a4ea9fa498a4a"
+    }
+  }
+}

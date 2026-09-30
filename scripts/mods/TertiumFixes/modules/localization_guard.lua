@@ -7,6 +7,9 @@ local module = {
 	setting_id = "localization_guard_enabled",
 }
 
+local PARTY_HEADER = "loc_social_menu_party_header"
+local party_header_limit
+
 local localize_states = setmetatable({}, {
 	__mode = "k",
 })
@@ -81,6 +84,18 @@ local function _mark_invalid_fallback(localization_manager, key, fallback)
 end
 
 function module:install()
+	runtime:defer_file(
+		self.id,
+		"scripts/ui/views/social_menu_view/social_menu_view_settings",
+		function (settings)
+			local limit = type(settings) == "table" and rawget(settings, "max_num_party_members")
+			party_header_limit = nil
+			if type(limit) == "number" and limit > 0 and limit < math.huge and limit % 1 == 0 then
+				party_header_limit = limit
+			end
+		end
+	)
+
 	local localize_ok = runtime:install_hook(
 		self.id,
 		"scripts/managers/localization/localization_manager",
@@ -98,10 +113,27 @@ function module:install()
 				return _invalid_key_fallback(key)
 			end
 
+			local initial_party_header = key == PARTY_HEADER and context == nil and party_header_limit ~= nil
+			local cache, previous_cached
+			if initial_party_header then
+				-- The Social definition localizes its header before supplying widget content.
+				context = { num_party_members = 0, max_num_party_members = party_header_limit }
+				no_cache = true
+				cache = localization_manager._string_cache
+				if type(cache) == "table" then previous_cached = cache[key] end
+				runtime:record_hit(self.id)
+				runtime:record_action(self.id)
+			end
+
 			local state, depth = _begin_localize(localization_manager, key)
 			local localized_string = func(localization_manager, key, no_cache, context)
 
 			_finish_localize(localization_manager, state, depth)
+			if initial_party_header and type(cache) == "table"
+				and localization_manager._string_cache == cache and cache[key] == localized_string then
+				-- Even no_cache calls write a result. Keep this initial count out of that cache.
+				cache[key] = previous_cached
+			end
 
 			return localized_string
 		end
@@ -142,7 +174,7 @@ function module:runtime_status()
 end
 
 function module:describe()
-	return "guards invalid keys and non-string raw values"
+	return "guards invalid localization values and the Social menu's initial party count"
 end
 
 return module

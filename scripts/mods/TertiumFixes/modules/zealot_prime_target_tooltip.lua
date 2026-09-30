@@ -10,6 +10,7 @@ local module = {
 	_talent_templates = nil,
 	_original = nil,
 	_replacement = nil,
+	_fixed_upstream = false,
 }
 
 local BUFF_TEMPLATE_PATH = "scripts/settings/buff/archetype_buff_templates/zealot_buff_templates"
@@ -38,6 +39,14 @@ function module:_apply()
 		return false
 	end
 
+	local related = template.related_talents
+	if type(related) == "table" and #related == 1 and related[1] == TALENT_KEY then
+		self._fixed_upstream = true
+		runtime:set_available(self.id, false, "fixed upstream in Darktide 1.13.0; no patch needed")
+		return false
+	end
+	self._fixed_upstream = false
+
 	if template.class_name ~= "buff"
 		or template.related_talents ~= nil
 		or template.predicted ~= false
@@ -47,7 +56,7 @@ function module:_apply()
 		runtime:set_available(
 			self.id,
 			false,
-			"exact 1.12.4 Prime Target effect metadata no longer matches"
+			"Prime Target effect has changed; leaving it alone"
 		)
 
 		return false
@@ -88,7 +97,13 @@ function module:_finalize_templates()
 		return
 	end
 
-	self._template = templates[EFFECT_KEY]
+	local template = templates[EFFECT_KEY]
+	if self._template ~= template then
+		self:_restore()
+		self._template = template
+		self._fixed_upstream = false
+		runtime:set_available(self.id, true)
+	end
 
 	if runtime:is_active(self.id) then
 		self:_apply()
@@ -148,12 +163,21 @@ function module:on_unload()
 	self:_restore()
 end
 
+function module:reset()
+	self:_restore()
+	if self._template and runtime:mod_is_enabled() and runtime:get(self.setting_id) == true then
+		runtime:set_available(self.id, true)
+		self:_apply()
+	end
+end
+
 function module:runtime_status()
+	if self._fixed_upstream then return "fixed upstream" end
 	return self._replacement and "patched" or "inactive"
 end
 
 function module:describe()
-	return "guarded talent-link metadata repair on the exact Prime Target effect buff"
+	return "adds the missing talent link on older Prime Target effects"
 end
 
 return module

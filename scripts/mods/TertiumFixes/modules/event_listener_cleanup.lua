@@ -3,7 +3,7 @@ local runtime = mod._tf_runtime
 
 local module = {
 	id = "event_listener_cleanup",
-	label = "Engine event-listener teardown repair",
+	label = "Event listener cleanup",
 	setting_id = "event_listener_cleanup_enabled",
 }
 
@@ -108,7 +108,7 @@ function module:runtime_status()
 end
 
 function module:describe()
-	return "unregisters six source-confirmed listeners omitted by three stock destroy paths"
+	return "removes leftover haptic, survival objective and expedition rescue listeners when their owners are destroyed"
 end
 
 return module

@@ -63,15 +63,14 @@ function module:_apply()
 			runtime:set_available(
 				self.id,
 				false,
-				"exact 1.12.4 Redirect Fire metadata no longer matches"
+				"Redirect Fire metadata has changed; leaving it alone"
 			)
 
 			return false
 		end
 
 		if related[1] == NEW_TALENT then
-			-- Darktide 1.12.4 corrected this metadata upstream. Record that
-			-- explicitly instead of pretending a patch was applied.
+			-- The game already has the correct talent link.
 		elseif related[1] == OLD_TALENT then
 			upstream_fixed = false
 		else
@@ -143,7 +142,12 @@ function module:install()
 			return
 		end
 
-		self._templates = templates
+		if self._templates ~= templates then
+			self:_restore()
+			self._templates = templates
+			self._fixed_upstream = false
+			runtime:set_available(self.id, true)
+		end
 
 		if runtime:is_active(self.id) then
 			self:_apply()
@@ -175,6 +179,14 @@ end
 
 function module:on_unload()
 	self:_restore()
+end
+
+function module:reset()
+	self:_restore()
+	if self._templates and runtime:mod_is_enabled() and runtime:get(self.setting_id) == true then
+		runtime:set_available(self.id, true)
+		self:_apply()
+	end
 end
 
 function module:runtime_status()

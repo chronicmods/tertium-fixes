@@ -3,7 +3,7 @@ local runtime = mod._tf_runtime
 
 local module = {
 	id = "chain_smoke_cleanup",
-	label = "Aggressive chain-weapon smoke cleanup",
+	label = "Chain weapon smoke cleanup",
 	setting_id = "chain_smoke_cleanup_enabled",
 }
 
@@ -61,10 +61,8 @@ function module:install()
 				end
 			end
 
-			-- Preserve weapon_special_end: the original transition runs first.
-			-- This optional workaround then hard-stops that exact just-released
-			-- handle before it can be recycled. It intentionally trades the
-			-- normal particle tail for eliminating persistent smoke.
+			-- Let the normal transition play weapon_special_end first. This
+			-- optional cleanup also removes the remaining smoke particles.
 			func(effects, ...)
 
 			if effect_id ~= nil and runtime:is_active(owner.id) then

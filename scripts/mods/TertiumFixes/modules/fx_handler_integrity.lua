@@ -3,7 +3,7 @@ local runtime = mod._tf_runtime
 
 local module = {
 	id = "fx_handler_integrity",
-	label = "FX handler ID and local-lifecycle integrity",
+	label = "Effect ID and local effect checks",
 	setting_id = "fx_handler_integrity_enabled",
 	local_rewrite_setting_id = "fx_handler_local_rewrite_enabled",
 	rpc_containment_setting_id = "fx_handler_rpc_idempotence_enabled",
@@ -160,10 +160,8 @@ local function _allocation_floor(cursor, capacity, slots)
 end
 
 
--- Produces a reservation from physical slot state. Free capacity is preferred;
--- when saturated, the oldest stoppable generation is recycled. A malformed
--- generation is selected first so a valid stop can repair it without relying on
--- generation-based removal.
+-- Use a free slot first. When the buffer is full, stop the oldest effect before
+-- reusing its slot. An invalid ID can still be cleaned up through its template.
 local function _reserve_local_slot(cursor, capacity, slots)
 	local free_slot
 	local free_index
@@ -468,8 +466,7 @@ function module:_add_template_effect(
 		return nil
 	end
 
-	-- A stopped slot can retain stale bookkeeping after interrupted teardown.
-	-- Removing all stale list references before start prevents duplicate roots.
+	-- Interrupted cleanup can leave the same slot in the running list twice.
 	_remove_all_references(running, slot)
 	slot.global_effect_id = nil
 	slot[QUARANTINED_SLOT_MARKER] = nil
@@ -506,7 +503,7 @@ function module:_add_template_effect(
 	runtime:record_hit(self.id)
 	runtime:record_action(self.id)
 
-	-- A marked local handler has no network ownership, so allocation ends here.
+	-- Local effects do not send a start RPC.
 	return ticket
 end
 
@@ -546,7 +543,7 @@ function module:_remove_template_effect(
 	runtime:record_hit(self.id)
 	runtime:record_action(self.id)
 
-	-- A marked local handler owns no network state, so it must emit no stop RPC.
+	-- Local effects do not send a stop RPC.
 	return nil
 end
 
@@ -578,8 +575,7 @@ function module:_update_local_handler(
 	local write_index = 1
 	local malformed_references = 0
 
-	-- Snapshot unique slot identities first. This makes update callbacks free to
-	-- stop or replace other effects without invalidating traversal state.
+	-- Update each slot once. A callback may stop or replace another effect.
 	for read_index = 1, #running_template_effects do
 		local slot = running_template_effects[read_index]
 
@@ -608,8 +604,7 @@ function module:_update_local_handler(
 		local expected_id = snapshot_ids[index]
 		local expected_template = snapshot_templates[index]
 
-		-- A callback earlier in the snapshot may have replaced this physical
-		-- slot. Never update or retire that newer generation in the same pass.
+		-- An earlier callback may have reused this slot for a new effect.
 		if slot.global_effect_id == expected_id
 			and slot.template == expected_template then
 			if slot.is_running ~= true then
@@ -720,15 +715,14 @@ function module:_remove_effects_on_unit(
 		local template_effect = target_effects[i]
 		local expected_id = target_generations[i]
 
-		-- Teardown callbacks may synchronously reuse a physical slot. Only clear
-		-- the generation that was captured, and only after that slot is stopped.
+		-- A stop callback can reuse the slot. Only clear the ID we started with.
 		if _clear_generation_after_stop(template_effect, expected_id) then
 			cleared = cleared + 1
 		end
 	end
 
-	-- Vanilla only matches optional_unit. Player-owned effects can point at a
-	-- different attachment unit, so their owner teardown needs a second pass.
+	-- The stock pass only checks optional_unit. Also stop effects attached to a
+	-- different unit when their player owner is being removed.
 	for i = #running_template_effects, 1, -1 do
 		local template_effect = running_template_effects[i]
 
@@ -1035,7 +1029,7 @@ function module:runtime_status()
 end
 
 function module:describe()
-	return "validates exact ring-buffer generations, clears stale IDs, optionally bounds duplicate RPC effects, and keeps marked local FX off the network"
+	return "checks reused effect IDs, clears stopped IDs, and provides optional cleanup for duplicate RPCs and local effects"
 end
 
 return module

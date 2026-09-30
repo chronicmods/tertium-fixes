@@ -400,6 +400,59 @@ check(
 	"module description identifies the exact archetype"
 )
 
+local predicted = new_extension(true, ability, 1)
+predicted._unit_data_extension = { is_resimulating = false }
+handler(predicted)
+local sounds_before_resim = #sounds
+predicted._unit_data_extension.is_resimulating = true
+predicted.charges = 0
+handler(predicted)
+predicted.charges = 1
+handler(predicted)
+predicted._unit_data_extension.is_resimulating = false
+handler(predicted)
+check(#sounds == sounds_before_resim,
+	"replaying an old empty-to-ready transition during prediction does not repeat the chime")
+predicted.charges = 0
+handler(predicted)
+predicted._unit_data_extension.is_resimulating = true
+predicted.charges = 1
+handler(predicted)
+predicted._unit_data_extension.is_resimulating = false
+handler(predicted)
+check(#sounds == sounds_before_resim + 1,
+	"a newly ready stimm chimes once after prediction has finished")
+
+local temporarily_disabled = new_extension(true, ability, 1)
+temporarily_disabled.enabled = true
+temporarily_disabled.ability_enabled = function (self) return self.enabled end
+handler(temporarily_disabled)
+local sounds_before_enable = #sounds
+temporarily_disabled.enabled = false
+temporarily_disabled.charges = 0
+handler(temporarily_disabled)
+temporarily_disabled.enabled = true
+temporarily_disabled.charges = 1
+handler(temporarily_disabled)
+check(#sounds == sounds_before_enable,
+	"reenabling an existing full charge does not look like a recharge")
+
+local invalid_numbers = { 0 / 0, math.huge, -1 }
+for _, value in ipairs(invalid_numbers) do
+	local invalid_charge = new_extension(true, ability, value)
+	handler(invalid_charge)
+	invalid_charge.charges = 1
+	handler(invalid_charge)
+end
+check(#sounds == sounds_before_enable, "invalid charge numbers cannot arm a false ready cue")
+
+local deleted_reads = 0
+local deleted_extension = setmetatable({ _is_local_unit = true, __deleted = true }, {
+	__index = function () deleted_reads = deleted_reads + 1; error("deleted object") end,
+})
+handler(deleted_extension)
+check(deleted_reads == 0, "deleted ability extensions are skipped without reading their methods")
+
 DEDICATED_SERVER = true
 local dedicated_module = dofile(
 	"scripts/mods/TertiumFixes/modules/hive_scum_stimm_chime.lua"

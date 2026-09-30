@@ -55,6 +55,10 @@ local function read_snapshot(runtime)
 		return nil
 	end
 
+	if not runtime:is_active("gc_pressure") then
+		return nil
+	end
+
 	local gc_pressure = runtime:get_module("gc_pressure")
 
 	if not gc_pressure or type(gc_pressure.meter_snapshot) ~= "function" then
@@ -72,7 +76,7 @@ local function copy_color(destination, source)
 end
 
 local function clamp_percent(value)
-	if value < 0 then
+	if value ~= value or value < 0 then
 		return 0
 	elseif value > 100 then
 		return 100

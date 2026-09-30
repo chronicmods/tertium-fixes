@@ -39,6 +39,7 @@ local module = {
 	_hud_user_visible = nil,
 	_force_meter = false,
 	_persist_timer = 0,
+	_marker_dirty = false,
 	_previous_unclean_reported = false,
 	_metrics = {
 		full_collections = 0,
@@ -114,7 +115,7 @@ local CONTROLLER_GROUPS = {
 local function _clamp(value, low, high)
 	value = tonumber(value)
 
-	if not value then
+	if not value or value ~= value then
 		return low
 	elseif value < low then
 		return low
@@ -123,6 +124,10 @@ local function _clamp(value, low, high)
 	end
 
 	return value
+end
+
+local function _finite(value)
+	return type(value) == "number" and value == value and value > -math.huge and value < math.huge
 end
 
 local function _mod_is_active(candidate)
@@ -178,7 +183,9 @@ function module:_collector_call(operation, argument)
 end
 
 function module:_detect_heap_capacity()
-	local fallback = _clamp(runtime:get("gc_capacity_fallback_mb") or 1024, 128, 65536)
+	local fallback = tonumber(runtime:get("gc_capacity_fallback_mb"))
+
+	fallback = _finite(fallback) and _clamp(fallback, 128, 65536) or 1024
 	local detected = nil
 
 	if type(Application) == "table" and type(Application.argv) == "function" then
@@ -214,6 +221,7 @@ function module:_detect_heap_capacity()
 	end
 
 	self._meter.capacity_mb = self._heap_capacity_mb
+	self._meter.capacity_source = self._capacity_source
 
 	if self._last_heap_mb then
 		self._last_percent = self._heap_capacity_mb > 0 and self._last_heap_mb / self._heap_capacity_mb * 100 or 0
@@ -223,8 +231,7 @@ function module:_detect_heap_capacity()
 end
 
 function module:_drop_tuning_ownership()
-	-- Cleanup ownership may change at runtime. Do not make a restoration call
-	-- that could overwrite tuning now owned elsewhere.
+	-- Another controller now owns the settings; leave its tuning alone.
 	self._tuning_owned = false
 	self._original_pause = nil
 	self._original_stepmul = nil
@@ -236,10 +243,7 @@ function module:_restore_tuning(reason)
 		return true
 	end
 
-	-- Ownership can change between the sample/update that requested restoration
-	-- and the restoration itself. Re-scan at the last safe point before making
-	-- any collector call. A newly claimed owner deliberately drops our saved
-	-- values through _scan_conflicts() and receives zero collector calls here.
+	-- Another controller may have been enabled since the last sample.
 	self:_scan_conflicts()
 
 	if self._conflict then
@@ -247,6 +251,7 @@ function module:_restore_tuning(reason)
 	end
 
 	local restored = true
+	self._tuning_level = 0
 
 	if type(self._original_pause) == "number" then
 		local pause_ok = self:_collector_call("setpause", self._original_pause)
@@ -307,9 +312,7 @@ function module:_clear_pressure(reason, may_restore, preserve_meter_pressure)
 		self:_drop_tuning_ownership()
 	end
 
-	-- Keep collector ownership separate from the pressure-state reset. A failed
-	-- restoration must retain its remaining original value so a later lifecycle
-	-- call can retry it exactly.
+	-- Keep any value that failed to restore for the next attempt.
 	self:_clear_pressure_state(preserve_meter_pressure)
 end
 
@@ -351,8 +354,6 @@ function module:_scan_conflicts()
 				local ok, candidate = pcall(get_mod, name)
 
 				if ok and _mod_is_active(candidate) then
-					-- Retain only the generic ownership slot after lookup so the
-					-- resolved identifier cannot flow into reporting paths.
 					self._active_controllers[group.key] = true
 					self._conflict = self._conflict or group.label
 					self._conflict_id = self._conflict_id or group.key
@@ -364,13 +365,10 @@ function module:_scan_conflicts()
 	end
 
 	if self._conflict and (not previous_conflict or self._tuning_owned) then
-		-- Zero collector calls are permitted after ownership changes. Discard our
-		-- saved tuning rather than risking an overwrite of the new controller.
+		-- The new controller owns the collector from this point.
 		self:_stand_down(false)
 	elseif not self._conflict and previous_conflict then
-		-- Ownership is normally already empty after a real controller hand-off.
-		-- Restoring here also recovers safely from stale lifecycle state where our
-		-- originals survived but the previously recorded controller did not.
+		-- Start with fresh samples when the other controller is disabled.
 		self:_stand_down(self._tuning_owned)
 	end
 
@@ -395,8 +393,7 @@ function module:_scan_conflicts()
 			runtime:log(self.id, "Cleanup ownership is available; monitoring will restart from a fresh sample.")
 		end
 
-		-- Conflict transitions are rare and materially change the HUD text. Refresh
-		-- here rather than rebuilding an unchanged label on every 20 Hz update.
+		-- Update the label when ownership changes, not on every update.
 		self:_refresh_meter()
 	end
 
@@ -404,7 +401,9 @@ function module:_scan_conflicts()
 end
 
 function module:_guard_mutation()
-	if runtime:get("gc_cleaning_permitted") ~= true then
+	if not runtime:is_active(self.id) then
+		return false, "controller inactive"
+	elseif runtime:get("gc_cleaning_permitted") ~= true then
 		return false, "cleaning disabled"
 	end
 
@@ -418,9 +417,19 @@ function module:_guard_mutation()
 end
 
 function module:_set_tuning(level)
+	if self._tuning_owned and self._tuning_level >= level then
+		return true
+	end
+
 	local allowed = self:_guard_mutation()
 
 	if not allowed then
+		return false
+	end
+
+	-- A partial restore may have returned only one setting to its old value.
+	-- Finish it before taking a new pair of originals.
+	if self._tuning_owned and self._tuning_level == 0 and not self:_restore_tuning("finish previous restoration") then
 		return false
 	end
 
@@ -434,9 +443,7 @@ function module:_set_tuning(level)
 			return false
 		end
 
-		-- Record restoration ownership immediately after the first successful
-		-- mutation. If the second setter fails, _restore_tuning() keeps and
-		-- retries any value that could not be restored.
+		-- Save the first original before the second setter can fail.
 		self._original_pause = type(old_pause) == "number" and old_pause or nil
 		self._original_stepmul = nil
 		self._tuning_owned = self._original_pause ~= nil
@@ -470,7 +477,9 @@ function module:_set_tuning(level)
 end
 
 function module:_performance_timer_start()
-	if type(Application) == "table" and type(Application.query_performance_counter) == "function" then
+	if type(Application) == "table"
+		and type(Application.query_performance_counter) == "function"
+		and type(Application.time_since_query) == "function" then
 		local ok, handle = pcall(Application.query_performance_counter)
 
 		if ok and handle ~= nil then
@@ -491,7 +500,7 @@ function module:_performance_timer_ms(kind, handle)
 		and type(Application.time_since_query) == "function" then
 		local ok, elapsed = pcall(Application.time_since_query, handle)
 
-		if ok and type(elapsed) == "number" then
+		if ok and _finite(elapsed) and elapsed >= 0 then
 			return elapsed
 		end
 	elseif kind == "clock" and type(os) == "table" and type(os.clock) == "function" then
@@ -571,7 +580,7 @@ function module:_full_collect(reason, source, silent)
 
 	local before_ok, before_kb = self:_collector_call("count")
 
-	if not before_ok or type(before_kb) ~= "number" then
+	if not before_ok or not _finite(before_kb) or before_kb < 0 then
 		return false, "count failed"
 	end
 
@@ -583,11 +592,15 @@ function module:_full_collect(reason, source, silent)
 
 	local after_ok, after_kb = self:_collector_call("count")
 	local before_mb = before_kb / 1024
-	local after_mb = after_ok and type(after_kb) == "number" and after_kb / 1024 or before_mb
+	local after_mb = after_ok and _finite(after_kb) and after_kb >= 0 and after_kb / 1024 or before_mb
 	local reclaimed_mb = math.max(0, before_mb - after_mb)
 
 	self._last_heap_mb = after_mb
 	self._last_percent = self._heap_capacity_mb > 0 and after_mb / self._heap_capacity_mb * 100 or 0
+
+	if self._last_percent < PRESSURE_CLEAR_PERCENT then
+		self:_clear_pressure("heap below 80 percent after cleanup", true)
+	end
 	self._metrics.full_collections = self._metrics.full_collections + 1
 	self._metrics.reclaimed_mb = self._metrics.reclaimed_mb + reclaimed_mb
 
@@ -636,7 +649,9 @@ function module:_full_collect(reason, source, silent)
 end
 
 function module:_queue_collect(reason, delay, source)
-	if runtime:get("gc_convenient_cleanup_enabled") ~= true then
+	if not runtime:is_active(self.id)
+		or runtime:get("gc_cleaning_permitted") ~= true
+		or runtime:get("gc_convenient_cleanup_enabled") ~= true then
 		return
 	end
 
@@ -697,31 +712,39 @@ function module:_classify_activity()
 end
 
 function module:_process_scheduled()
-	-- A transition cleanup may already have been queued when the option is
-	-- switched off. Re-check at execution time so disabling the option is an
-	-- immediate cancellation boundary, not merely a gate on future queues.
+	-- Disabling transition cleanup also cancels work queued before the change.
 	if runtime:get("gc_convenient_cleanup_enabled") ~= true then
 		self:_cancel_scheduled()
 
 		return
 	end
 
+	local collect_reason, collect_source
+	local classify = self._scheduled["classify-entry"]
+
+	if classify and classify.due <= self._clock then
+		self._scheduled["classify-entry"] = nil
+		local activity = self:_classify_activity()
+
+		if activity == "hub" then
+			self:_queue_collect("hub-settled", HUB_DELAY_SECONDS, "transition")
+		else
+			collect_reason = activity .. " entry"
+			collect_source = "transition"
+		end
+	end
+
 	for reason, entry in pairs(self._scheduled) do
 		if entry.due <= self._clock then
 			self._scheduled[reason] = nil
-
-			if reason == "classify-entry" then
-				local activity = self:_classify_activity()
-
-				if activity == "hub" then
-					self:_queue_collect("hub-settled", HUB_DELAY_SECONDS, "transition")
-				else
-					self:_full_collect(activity .. " entry", "transition", true)
-				end
-			else
-				self:_full_collect(reason, entry.source, true)
-			end
+			collect_reason = collect_reason or reason
+			collect_source = collect_source or entry.source
 		end
+	end
+
+	-- Entry and exit can become due together. One collection covers both.
+	if collect_reason then
+		self:_full_collect(collect_reason, collect_source, true)
 	end
 end
 
@@ -779,7 +802,7 @@ function module:_refresh_meter()
 		self._hud_user_visible = configured_visible
 	end
 
-	self._meter.visible = self._hud_user_visible or self._force_meter
+	self._meter.visible = runtime:is_active(self.id) and (self._hud_user_visible or self._force_meter)
 	self._meter.x = _clamp(runtime:get("gc_hud_x_percent") or 5, 0, 100)
 	self._meter.y = _clamp(runtime:get("gc_hud_y_percent") or 65, 0, 100)
 	self._meter.percent = percent
@@ -789,8 +812,9 @@ function module:_refresh_meter()
 
 	if self._last_heap_mb then
 		self._meter.label = string.format(
-			"Lua heap %.1f / %.0f MB (%.1f%%)",
+			"Lua heap %.1f / %s%.0f MB (%.1f%%)",
 			self._last_heap_mb,
+			self._capacity_source == "fallback setting" and "~" or "",
 			self._heap_capacity_mb,
 			percent
 		)
@@ -802,8 +826,7 @@ function module:_refresh_meter()
 end
 
 function module:_sample_heap()
-	-- Re-check before count as well as mutations. This preserves strict zero-call
-	-- stand-down whenever this module does not own cleanup.
+	-- Leave monitoring to the other controller too.
 	self:_scan_conflicts()
 
 	if self._conflict then
@@ -812,7 +835,7 @@ function module:_sample_heap()
 
 	local ok, heap_kb = self:_collector_call("count")
 
-	if not ok or type(heap_kb) ~= "number" then
+	if not ok or not _finite(heap_kb) or heap_kb < 0 then
 		return false, "error"
 	end
 
@@ -821,7 +844,7 @@ function module:_sample_heap()
 
 	local percent = self._last_percent
 
-	local growth_cleaned = self:_push_growth_sample(percent)
+	local growth_cleaned = runtime:get("gc_cleaning_permitted") == true and self:_push_growth_sample(percent)
 
 	if growth_cleaned then
 		percent = tonumber(self._last_percent) or percent
@@ -932,8 +955,7 @@ function module:_flush_shutdown_marker()
 		return false
 	end
 
-	-- DMF exposes this as a dot function. Keeping it inside pcall also makes the
-	-- diagnostic best-effort on older framework versions.
+	-- This DMF function does not take self.
 	local save_ok, save_error = pcall(dmf.save_unsaved_settings_to_file)
 
 	if not save_ok then
@@ -979,11 +1001,9 @@ function module:_write_shutdown_marker(clean, force)
 		end
 	end
 
-	-- Persist only meaningful state transitions: the initial unclean marker, a
-	-- broad heap-band change, or a clean shutdown. The 30-second heartbeat below
-	-- therefore performs no disk write while the marker is unchanged.
-	if changed then
-		self:_flush_shutdown_marker()
+	-- Save changed markers and retry failed saves on the next check.
+	if changed or self._marker_dirty then
+		self._marker_dirty = not self:_flush_shutdown_marker()
 	end
 end
 
@@ -1017,7 +1037,7 @@ function module:install()
 	self:_detect_heap_capacity()
 	self:_read_shutdown_marker()
 
-	if runtime:mod_is_enabled() then
+	if runtime:mod_is_enabled() and runtime:get("gc_enabled") == true then
 		self:_scan_conflicts()
 		self:_write_shutdown_marker(false)
 	end
@@ -1051,8 +1071,7 @@ function module:update(dt)
 		sampled = true
 	end
 
-	-- The marker is diagnostic-only and remains useful in monitor-only mode, so
-	-- persist it before the collector-permission early return below.
+	-- Keep shutdown diagnostics available while only monitoring the heap.
 	if self._persist_timer >= 30 then
 		self._persist_timer = 0
 		self:_write_shutdown_marker(false)
@@ -1062,9 +1081,8 @@ function module:update(dt)
 		self._periodic_timer = 0
 		self:_cancel_scheduled()
 
-		-- Monitoring remains useful, but it must not retain dwell/tuning state
-		-- that could cause an immediate mutation if cleaning is enabled later.
-		-- Retry a failed exact restoration only at the one-second sample cadence.
+		-- Start with fresh pressure samples if cleaning is enabled later.
+		-- Retry unfinished restoration at most once per sample.
 		if sampled then
 			if self._tuning_owned then
 				self:_restore_tuning("monitor-only restoration retry")
@@ -1078,14 +1096,11 @@ function module:update(dt)
 
 	if self._pressure then
 		self._pressure_seconds = self._pressure_seconds + dt
+		local level = self._pressure_no_drop_seconds >= ESCALATE_SECONDS and 2 or 1
 
-		if self._pressure_no_drop_seconds >= ESCALATE_SECONDS then
-			self:_set_tuning(2)
-		else
-			self:_set_tuning(1)
+		if self:_set_tuning(level) then
+			self:_run_incremental_budget()
 		end
-
-		self:_run_incremental_budget()
 	end
 
 	self:_update_post_clean_warning(dt)
@@ -1132,17 +1147,17 @@ function module:on_setting_changed(setting_id)
 		self:_detect_heap_capacity()
 	elseif setting_id == "gc_hud_enabled" then
 		self._hud_user_visible = runtime:get("gc_hud_enabled") == true
-	elseif setting_id == "gc_cleaning_permitted" and runtime:get("gc_cleaning_permitted") ~= true then
-		-- Re-scan immediately because cleanup ownership can change between update
-		-- ticks and must receive strict zero-call stand-down treatment.
+	elseif setting_id == "gc_cleaning_permitted" then
+		-- Another controller may have been enabled since the last update.
 		self:_scan_conflicts()
 		self:_clear_pressure(
-			"cleaning disabled",
+			"cleaning permission changed",
 			not self._conflict,
 			(tonumber(self._last_percent) or 0) >= PRESSURE_CLEAR_PERCENT
 		)
 		self:_cancel_scheduled()
 		self._periodic_timer = 0
+		self._growth_samples = {}
 	elseif setting_id == "gc_convenient_cleanup_enabled"
 		and runtime:get("gc_convenient_cleanup_enabled") ~= true then
 		self:_cancel_scheduled()
@@ -1152,7 +1167,7 @@ function module:on_setting_changed(setting_id)
 	elseif setting_id == "gc_shutdown_diagnostic_enabled" then
 		if runtime:get("gc_shutdown_diagnostic_enabled") == true then
 			self:_read_shutdown_marker()
-			self:_write_shutdown_marker(false)
+			self:_write_shutdown_marker(not runtime:is_active(self.id))
 		else
 			-- Clear any stale abnormal-exit marker even though the setting has
 			-- already changed to false.
@@ -1164,6 +1179,12 @@ function module:on_setting_changed(setting_id)
 end
 
 function module:on_enabled()
+	if runtime:get("gc_enabled") ~= true then
+		self:on_disabled()
+
+		return
+	end
+
 	self._hud_user_visible = runtime:get("gc_hud_enabled") == true
 	self._conflict_timer = 0
 	self._clock = 0
@@ -1179,8 +1200,7 @@ function module:on_enabled()
 end
 
 function module:on_disabled()
-	-- Re-scan before restoring because cleanup ownership can change between
-	-- update ticks and strict zero-call stand-down takes precedence.
+	-- Check ownership again before restoring collector settings.
 	self:_scan_conflicts()
 
 	-- Restore only while this module still owns the collector.
@@ -1286,8 +1306,7 @@ function module:meter_snapshot()
 end
 
 function module:reset()
-	-- Validate collector ownership before any restoration call. Ownership can
-	-- change between the last update and this reset.
+	-- Check ownership again before restoring collector settings.
 	self:_scan_conflicts()
 
 	if not self._conflict then
@@ -1331,7 +1350,7 @@ function module:describe()
 	local heap = self._last_heap_mb and string.format("%.1f MB", self._last_heap_mb) or "not sampled"
 	local percent = self._last_percent and string.format("%.1f%%", self._last_percent) or "n/a"
 	local detail = string.format(
-		"heap=%s/%d MB (%s), capacity=%s, full=%d, steps=%d, reclaimed=%.1f MB",
+		"heap=%s/%.0f MB (%s), capacity=%s, full=%d, steps=%d, reclaimed=%.1f MB",
 		heap,
 		self._heap_capacity_mb,
 		percent,

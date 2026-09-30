@@ -1,8 +1,8 @@
 {
   "name": "tertium-fixes",
-  "version": "0.5.2-unstable.1",
+  "version": "0.6.0-unstable.2",
   "private": true,
-  "description": "Reproducible source-contract and Lua behavior gate for Tertium Fixes.",
+  "description": "Tertium Fixes tests and packaging checks.",
   "scripts": {
     "test": "node tests/run_gate.mjs",
     "test:smoke": "node tests/smoke_test.mjs",

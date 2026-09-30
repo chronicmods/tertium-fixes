@@ -7,7 +7,7 @@ const sourceRoot = process.env.DARKTIDE_SOURCE_ROOT || process.argv[2];
 
 if (!sourceRoot) {
   console.error(
-    "Set DARKTIDE_SOURCE_ROOT or pass the Darktide 1.12.4 source directory as the first argument.",
+    "Set DARKTIDE_SOURCE_ROOT or pass the extracted Darktide 1.13.0 source directory as the first argument.",
   );
   process.exit(2);
 }
@@ -31,9 +31,9 @@ const run = (label, args, extraEnv = {}) => {
   }
 };
 
-run("package and 1.12.4 source contracts", ["tests/smoke_test.mjs", sourceRoot], {
+run("package and installed game source", ["tests/smoke_test.mjs", sourceRoot], {
   DARKTIDE_SOURCE_ROOT: sourceRoot,
 });
-run("Lua behavior suites", ["tests/run_behavior.mjs"]);
+run("Lua behaviour suites", ["tests/run_behavior.mjs"], { DARKTIDE_SOURCE_ROOT: sourceRoot });
 
 console.log("\ncomplete release gate: PASS");

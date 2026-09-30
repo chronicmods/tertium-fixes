@@ -191,8 +191,56 @@ prime:on_disabled()
 
 check(prime_effect.related_talents == nil, "Prime Target repair restores the unmodified template")
 
+local prime_path = "scripts/settings/buff/archetype_buff_templates/zealot_buff_templates"
+local fixed_link = { "zealot_elite_kills_empowers" }
+local fixed_effect = {
+	class_name = "buff", duration = 8, max_stacks = 3,
+	predicted = false, refresh_duration_on_stack = true,
+	related_talents = fixed_link,
+}
+deliver(prime_path, {
+	zealot_elite_kills_empowers = {},
+	zealot_elite_kills_empowers_effect = fixed_effect,
+})
+check(fixed_effect.related_talents == fixed_link and availability.zealot_prime_target_tooltip == false
+	and prime:runtime_status() == "fixed upstream" and hits.zealot_prime_target_tooltip == 1,
+	"Prime Target recognises the 1.13.0 correction without changing it or recording another hit")
+prime:reset()
+prime:on_disabled()
+prime:on_enabled()
+check(fixed_effect.related_talents == fixed_link and actions.zealot_prime_target_tooltip == 1,
+	"Prime Target leaves the game correction intact through reset and toggles")
+
+local replacement_effect = {
+	class_name = "buff", duration = 8, max_stacks = 3,
+	predicted = false, refresh_duration_on_stack = true,
+}
+deliver(prime_path, {
+	zealot_elite_kills_empowers = {},
+	zealot_elite_kills_empowers_effect = replacement_effect,
+})
+check(replacement_effect.related_talents[1] == "zealot_elite_kills_empowers"
+	and availability.zealot_prime_target_tooltip == true,
+	"a replaced legacy Prime Target template can be repaired after a fixed template")
+local later_effect = {
+	class_name = "buff", duration = 8, max_stacks = 3,
+	predicted = false, refresh_duration_on_stack = true,
+}
+deliver(prime_path, {
+	zealot_elite_kills_empowers = {},
+	zealot_elite_kills_empowers_effect = later_effect,
+})
+check(replacement_effect.related_talents == nil and later_effect.related_talents ~= nil,
+	"Prime Target releases the old template before patching its replacement")
+local other_mod_link = { "another_talent" }
+later_effect.related_talents = other_mod_link
+prime:on_disabled()
+check(later_effect.related_talents == other_mod_link, "Prime Target does not erase another writer's later change")
+
 reset_world()
 local overload = dofile("scripts/mods/TertiumFixes/modules/power_overload_hud.lua")
+overload:on_enabled()
+check(availability.power_overload_hud == nil, "enabling before the buff file loads does not disable Power Overload")
 local overload_target = {
 	class_name = "buff",
 	duration = 8,
@@ -238,6 +286,44 @@ check(
 		and overload_target.related_talents == nil,
 	"Power Overload repair restores all original presentation fields"
 )
+
+overload:on_enabled()
+local old_overload = overload_target
+overload_target = {
+	class_name = "buff", duration = 8, max_stacks = 1, max_stacks_cap = 1,
+	predicted = false, refresh_duration_on_stack = true,
+}
+deliver("scripts/settings/buff/archetype_buff_templates/cryptic_buff_templates", {
+	cryptic_overload_keystone_allies_buff = overload_target,
+	cryptic_overload_keystone_stack = overload_source,
+})
+check(old_overload.hud_icon == nil and overload_target.hud_icon == overload_source.hud_icon,
+	"Power Overload restores replaced game data and patches the new template")
+overload:reset()
+check(overload_target.always_show_in_hud == true, "reset leaves an enabled Power Overload repair applied")
+overload:on_disabled()
+check(overload_target.hud_icon == nil, "reset retains the original fields for later restoration")
+
+reset_world()
+veteran = dofile("scripts/mods/TertiumFixes/modules/veteran_redirect_tooltip.lua")
+local function legacy_veteran()
+	return {
+		veteran_improved_tag_allied_buff = { related_talents = { "veteran_improved_tag_dead_bonus" } },
+		veteran_improved_tag_allied_buff_increased_stacks = { related_talents = { "veteran_improved_tag_dead_bonus" } },
+	}
+end
+local old_veteran, new_veteran = legacy_veteran(), legacy_veteran()
+local old_link = old_veteran.veteran_improved_tag_allied_buff.related_talents
+veteran:install()
+deliver(veteran_path, old_veteran)
+deliver(veteran_path, new_veteran)
+check(old_veteran.veteran_improved_tag_allied_buff.related_talents == old_link
+	and new_veteran.veteran_improved_tag_allied_buff.related_talents[1] == "veteran_improved_tag_dead_coherency_bonus",
+	"Redirect Fire transfers the repair to a replaced template without leaving the old one changed")
+veteran:reset()
+veteran:on_disabled()
+check(new_veteran.veteran_improved_tag_allied_buff.related_talents[1] == "veteran_improved_tag_dead_bonus",
+	"Redirect Fire restores the replacement after a reset")
 
 io.write(string.format("metadata_repairs_behavior: %d passed, %d failed\n", checks - failures, failures))
 

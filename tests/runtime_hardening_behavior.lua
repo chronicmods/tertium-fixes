@@ -722,6 +722,158 @@ do
 	)
 end
 
+-- Both the engine/LuaJIT path and a Lua 5.1 xpcall must preserve nil values.
+do
+	local harness = new_harness()
+	local runtime = harness.runtime
+	add_module(runtime, "return_values")
+	local native_xpcall = xpcall
+	local seen_callback
+	local seen_handler
+	local callback_count = 0
+	local function values(...)
+		callback_count = callback_count + 1
+		return select("#", ...), ...
+	end
+	local function pack(...)
+		return { n = select("#", ...), ... }
+	end
+
+	xpcall = function (callback, handler, ...)
+		seen_callback = callback
+		seen_handler = handler
+		return native_xpcall(callback, handler, ...)
+	end
+
+	local result = pack(runtime:run("return_values", values, "a", nil, false, "d", nil, "f", nil))
+	local error_handler = seen_handler
+
+	check(
+		result.n == 9 and result[1] == true and result[2] == 7
+			and result[3] == "a" and result[4] == nil and result[5] == false
+			and result[6] == "d" and result[7] == nil and result[8] == "f" and result[9] == nil,
+		"run preserves every return value, including trailing nils beyond four results"
+	)
+	check(seen_callback == values, "argument-capable xpcall receives the callback directly")
+
+	runtime:run("return_values", values, nil)
+	check(seen_handler == error_handler and callback_count == 2, "success calls reuse the error handler and invoke the callback once")
+
+	xpcall = function (callback, handler)
+		return native_xpcall(callback, handler)
+	end
+	result = pack(runtime:run("return_values", values, "legacy", nil, false, nil))
+
+	check(
+		result.n == 6 and result[2] == 4 and result[3] == "legacy"
+			and result[4] == nil and result[5] == false and result[6] == nil,
+		"Lua 5.1 fallback preserves arguments and returns when xpcall drops extra arguments"
+	)
+	xpcall = native_xpcall
+end
+
+do
+	local harness = new_harness({ threshold = 1 })
+	local runtime = harness.runtime
+	local module = add_module(runtime, "owned_state")
+	local owned = true
+	local cleanups = 0
+	local enables = 0
+
+	module.on_disabled = function ()
+		owned = false
+		cleanups = cleanups + 1
+	end
+	module.on_enabled = function ()
+		owned = true
+		enables = enables + 1
+	end
+	runtime:record_error(module.id, "hook failed")
+
+	check(
+		module.state.quarantined and not owned and cleanups == 1 and module.state.consecutive_errors == 1,
+		"quarantine releases owned state without erasing the failure streak"
+	)
+	runtime:reset(module.id)
+	check(owned and enables == 1 and runtime:is_active(module.id), "reset reapplies state released by quarantine")
+
+	runtime:set_available(module.id, false, "changed game API")
+	check(not owned and cleanups == 2, "losing availability also releases owned state")
+end
+
+do
+	local harness = new_harness({ threshold = 1 })
+	local runtime = harness.runtime
+	local module = add_module(runtime, "failed_cleanup")
+	local cleanups = 0
+
+	module.on_disabled = function ()
+		cleanups = cleanups + 1
+		error("cleanup failed", 0)
+	end
+	local ok = pcall(runtime.record_error, runtime, module.id, "initial failure")
+
+	check(
+		ok and cleanups == 1 and module.state.errors == 2
+			and module.state.latest_error.phase == "quarantine-cleanup",
+		"failed quarantine cleanup is recorded once without recursion or escaping"
+	)
+	module.reset = function () error("reset failed", 0) end
+	harness.settings.auto_quarantine_threshold = 99
+	runtime:invalidate_setting("auto_quarantine_threshold")
+	runtime:reset(module.id)
+	check(module.state.quarantined and not runtime:is_active(module.id), "a failed reset cannot reactivate a quarantined module")
+end
+
+do
+	local harness = new_harness()
+	local runtime = harness.runtime
+	local module = add_module(runtime, "bad_error_object")
+	local err = setmetatable({}, {
+		__tostring = function () error("cannot print", 0) end,
+		__index = function () error("cannot index", 0) end,
+	})
+	local ok, success = pcall(runtime.run, runtime, module.id, function () error(err, 0) end)
+
+	check(
+		ok and not success and contains(module.state.last_error, "unprintable table error"),
+		"an error object with broken metamethods still produces a contained diagnostic"
+	)
+end
+
+for _, event in ipairs({ "on_disabled", "on_unload" }) do
+	local harness = new_harness({ threshold = 1 })
+	local runtime = harness.runtime
+	local module = add_module(runtime, "failed_" .. event)
+	local callbacks = 0
+	module.on_disabled = function ()
+		callbacks = callbacks + 1
+		error("cleanup failed", 0)
+	end
+	module.on_unload = module.on_disabled
+	runtime:dispatch(event)
+
+	check(callbacks == 1 and module.state.quarantined, event .. " cannot re-enter partially completed cleanup when its error triggers quarantine")
+end
+
+do
+	local harness = new_harness({ threshold = 1 })
+	local runtime = harness.runtime
+	local module = add_module(runtime, "deferred_cleanup")
+	local cleanups = 0
+	module.on_disabled = function () cleanups = cleanups + 1 end
+	runtime:defer_file(module.id, "game/deferred_cleanup", function () end)
+	runtime:_fail_deferred_operation("game/deferred_cleanup", module.id, "missing method", {})
+	check(cleanups == 1 and module.state.quarantined and not module.state.available, "a deferred error cannot repeat quarantine cleanup when it also marks the module unavailable")
+	local count, last
+	module.on_unload = function (_, ...)
+		count = select("#", ...)
+		last = select(3, ...)
+	end
+	runtime:dispatch("on_unload", "first", nil, "last")
+	check(count == 3 and last == "last", "guarded cleanup preserves lifecycle callback arguments")
+end
+
 check(require_calls == 0, "core never calls require during install, failure, or reset")
 
 require = original_require

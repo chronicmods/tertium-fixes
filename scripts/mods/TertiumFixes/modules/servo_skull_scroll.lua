@@ -9,6 +9,7 @@ local module = {
 	_constants = nil,
 	_original_inputs = nil,
 	_replacement_inputs = nil,
+	_changed_step = nil,
 }
 
 local TEMPLATE_PATH = "scripts/settings/equipment/weapon_templates/grenades/cryptic_servo_skull_order_point"
@@ -26,21 +27,33 @@ function module:_current_inputs()
 end
 
 function module:_restore()
-	local current, first_step = self:_current_inputs()
+	local first_step = self._changed_step
+	local current = first_step and first_step.inputs
 
 	if first_step and current == self._replacement_inputs then
 		first_step.inputs = self._original_inputs
 	end
 
 	self._replacement_inputs = nil
+	self._changed_step = nil
 end
 
 function module:_apply()
-	if self._replacement_inputs then
-		return true
+	if not self._template or not self._constants then
+		return false
 	end
 
 	local inputs, first_step = self:_current_inputs()
+
+	if self._replacement_inputs then
+		if inputs == self._replacement_inputs and first_step == self._changed_step then
+			return true
+		end
+
+		runtime:set_available(self.id, false, "Servo-Skull inputs changed while the fix was active")
+
+		return false
+	end
 
 	if type(inputs) ~= "table"
 		or type(first_step) ~= "table"
@@ -72,6 +85,7 @@ function module:_apply()
 
 	first_step.inputs = replacement
 	self._replacement_inputs = replacement
+	self._changed_step = first_step
 	runtime:record_hit(self.id, removed)
 	runtime:record_action(self.id)
 
@@ -90,6 +104,11 @@ function module:_finalize_templates()
 
 	inputs = self:_current_inputs()
 
+	if inputs == self._replacement_inputs and inputs ~= nil
+		and self._original_inputs == constants.wield_inputs then
+		return
+	end
+
 	if type(constants.wield_inputs) ~= "table"
 		or inputs ~= constants.wield_inputs
 		or template.not_scroll_wieldable ~= true then
@@ -99,6 +118,7 @@ function module:_finalize_templates()
 	end
 
 	self._original_inputs = inputs
+	runtime:set_available(self.id, true)
 
 	if runtime:is_active(self.id) then
 		self:_apply()
@@ -113,7 +133,12 @@ function module:install()
 			return
 		end
 
-		self._template = template
+		if self._template ~= template then
+			self:_restore()
+			self._original_inputs = nil
+			self._template = template
+		end
+
 		self:_finalize_templates()
 	end)
 	local constants_ok = runtime:defer_file(self.id, CONSTANTS_PATH, function (constants)
@@ -123,7 +148,12 @@ function module:install()
 			return
 		end
 
-		self._constants = constants
+		if self._constants ~= constants then
+			self:_restore()
+			self._original_inputs = nil
+			self._constants = constants
+		end
+
 		self:_finalize_templates()
 	end)
 
@@ -158,16 +188,21 @@ function module:on_unload()
 	self:_restore()
 end
 
+function module:reset()
+	self:_restore()
+	self:_finalize_templates()
+end
+
 function module:runtime_status()
 	if self._replacement_inputs then
-		return "prototype active"
+		return "active"
 	end
 
 	return runtime:get(self.setting_id) == true and "ready" or "opt-in disabled"
 end
 
 function module:describe()
-	return "private clone; shared PlayerCharacterConstants remains untouched"
+	return "removes scroll inputs from the Servo-Skull template only"
 end
 
 return module

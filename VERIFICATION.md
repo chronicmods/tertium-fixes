@@ -1,130 +1,136 @@
-# Verification status: 0.5.2-unstable.1
+# Verification
 
-This page separates what I can prove from what still needs live-game soak. A
-hook being installed is not counted as a repair firing. Tertium Fixes already
-keeps separate hit and action counters, which are visible through `/tf_status`.
+Tertium Fixes **0.6.0-unstable.2** targets Darktide **1.13.0-b802981**, Steam
+build **25492122**, content revision **138030**.
 
-## Current target
+## Source and behaviour checks
 
-- Darktide source snapshot: 1.12.4
-- Source commit: `fffb2f1f8a38b42f61cc98610bda0dfdd2129914`
-- Locally installed Steam build observed during the audit: `24611088`
-- Preview version: `0.5.2-unstable.1`
+The reviewed build passes **205 package/source checks** and **843
+behaviour checks across 22 suites**, with no skipped suites or reported errors.
+The package checks compile every production Lua file, execute the option and
+translation definitions, compare the runtime defaults, check module registration,
+and compare the game files with the recorded hashes.
 
-The source gate checks the exact classes, methods, signatures, template keys,
-and several stock defect shapes used by the mod. It is not allowed to skip the
-source checks when building this preview.
+`tests/source_manifest.json` pins 113 relevant game files. It includes both the
+decompiled-source and extracted-bytecode hashes. The source gate verifies the
+readable source used by the tests. A missing or changed file fails the gate.
 
-## Test evidence
+The new source suites execute the installed game's class, input, action, UI and
+effect methods. They keep reproductions of the stock faults beside the repaired
+cases. Native rendering, audio, resource and network services are represented
+inside the test environment; these cases establish Lua behaviour and ownership,
+not a native-engine benchmark or a completed mission.
 
-- 594 package, safety, and current-source contract checks pass with the 1.12.4
-  source gate enabled and no source skips accepted.
-- 404 executable Lua behavior checks pass across all 13 suites.
-- The complete branch gate is 998 checks with zero failures.
-- All 25 production modules have at least one behavior case that proves an
-  observable mutation, cleanup, suppression, restoration, or guarded upstream
-  no-op.
-- The same 998-check gate also passes against the extracted release archive.
-  All 34 production files in that archive hash-match the branch contents.
-- Final archive: `TertiumFixes-v0.5.2-unstable.1.zip`, 71,809 bytes, SHA-256
-  `12799321f347fe6c7578876e5e1c1c99a9feaa4bf873236f78da197c92c307a9`.
-- Existing live Darktide 1.12.3 logs confirm that DMF loaded the mod and
-  installed its immediate and deferred hook families without a Tertium Fixes
-  runtime error. That is install-path evidence, not 1.12.4 soak evidence.
+| Suite | Checks |
+| --- | ---: |
+| Deferred loading | 19 |
+| Partial effect startup and cleanup | 21 |
+| Effect enable, reload and disable | 13 |
+| Effects using the installed source | 56 |
+| Audio and event cleanup | 43 |
+| Effect handler IDs and ownership | 25 |
+| Lua memory and HUD | 77 |
+| Graphics preset controller | 45 |
+| Graphics profiles using the installed source | 36 |
+| Hive Scum stimm cue | 45 |
+| Existing input and buff fixes | 19 |
+| Input buffering using the installed source | 65 |
+| Initial Social heading and live party counts | 20 |
+| Talent and HUD metadata | 18 |
+| Notification callbacks and suppression | 15 |
+| Psykhanium and Stimm Field guards | 56 |
+| Other existing repairs | 17 |
+| Runtime errors, reset and cleanup | 76 |
+| Runtime update scheduling | 22 |
+| Shooting-range selector using the installed source | 38 |
+| UI cleanup and template replacement | 34 |
+| UI using the installed source | 83 |
 
-The pinned runtime for behavior tests is `fengari-node-cli@0.1.0` with
-`fengari@0.1.5`. The exact versions and transitive dependencies are recorded in
-`package-lock.json`.
+The input tests cover normal local capture and input RPC data, exact-slot swaps,
+quick and aimed Blitz behaviour, queued weapon specials, menu/key locks,
+interaction, death and disabled extensions, held/released inputs, cancellation,
+and both predicted and authoritative action acknowledgement. A separate review
+reproduced and checked the server-correction path: it can restore an accepted
+action without calling `start_action`, so the module observes that path as well.
 
-From the repository root, the reproducible gate is:
+The grouped options were also checked with the installed Mod Framework options
+validator. All seven groups and 55 setting widgets were accepted with their
+defaults. A pre-existing setting value was retained in the compatibility check.
+
+The unstable.2 source archive also passed the complete gate after extraction,
+using dependencies resolved from its included package lock. The paired DarkCache
+source archive passed its 165 checks using that extracted Tertium source tree.
+Archive verification compares every entry with the source file and checks ZIP
+integrity. Game scripts and test dependencies are not bundled in the downloads.
+
+## Allocation measurement
+
+A comparison with commit `e7922ce` ran 100,000 identical successful runtime
+calls in Fengari 0.1.5 after warm-up. The old wrapper allocated 200,000 Lua tables
+and 100,000 Lua closures; the revised supported path allocated none. A separate
+100,000 idle input-capture check also allocated no Lua tables or closures.
+
+This measures the test VM. It is evidence that the unnecessary allocations were
+removed, not a claim about an FPS increase in Darktide. The runtime checks whether
+the actual `xpcall` supports arguments and retains a compatible fallback.
+
+## Local game check
+
+The initial local run reached the Mourningstar with the previously saved mod
+list. Tertium Fixes was absent from that list. The log showed the older swap and
+ability guarantee mods failing to hook `PlayerUnitAbilityExtension.use_ability_charge`,
+which is no longer present. After Alt+F4, the engine also reported an unreleased
+package and render targets. That run is a baseline, not validation of this update.
+
+The installed unstable.1 build subsequently reached the Mourningstar with
+Tertium Fixes enabled. Its native log recorded zero Tertium runtime errors at
+the hub snapshot, confirmed the direct protected-call path, and recorded actual
+audio-source, rumble and HUD metadata actions. The run also exposed an unavailable
+Psykhanium guard: the game now nests its difficulty array under `danger_levels`.
+That guard is corrected in unstable.2 and is tested through the real selector.
+
+A later run exposed the Social heading's missing initial count context. The
+updated localisation guard repairs that call, and the source regression preserves
+normal party updates and unrelated diagnostics. A separate missing skin reference
+was traced to the game's current item catalogue and remains outside the repairs.
+
+The mod loader is patched, and the three overlapping guarantee entries are
+disabled in both the load order and Mod Framework. FPS Doctor and SMOG were
+already disabled. Existing extra-cleanup and notification-suppression choices
+have been retained. The prior mod folder, load order and user settings are
+backed up.
+
+The new graphics build and DarkCache combination still require their final live
+check. The earlier hub success does not establish that the new presets, cache
+transitions or every weapon effect work in the engine. No successful mission
+or native GPU benchmark is claimed here.
+
+## Repeating the checks
+
+From the source package, install the locked test dependencies and provide the
+extracted game source:
 
 ```powershell
 npm.cmd ci --ignore-scripts --no-audit --no-fund
-$env:DARKTIDE_SOURCE_ROOT = "C:\path\to\Darktide-Source-Code"
+$env:DARKTIDE_SOURCE_ROOT = "C:\Darktide-source-1.13.0"
 npm.cmd test
 ```
 
-The smoke gate resolves that source directory as a Git checkout and fails unless
-`HEAD` is exactly `fffb2f1f8a38b42f61cc98610bda0dfdd2129914`.
+The recorded extraction used the limn 0.7.2 release and
+luajit-decompiler-v2 `1443316` with `-m`. The game source is not included in this
+mod archive. Tool documentation is available from
+[limn](https://github.com/manshanko/limn) and
+[the decompiler release](https://github.com/igromanru/luajit-decompiler-v2/releases/tag/2024-11-30).
 
-To audit a real session log without counting hook installation as a repair hit:
+The runner requires a successful completion line from every suite. It also
+rejects timeouts, stderr errors and skipped source tests; the Lua CLI's exit code
+alone is insufficient.
 
-```powershell
-node tests/audit_live_log.mjs "C:\path\to\console.log"
-```
+## Remaining limits
 
-## What the 1.12.4 audit found
-
-Darktide changed
-`ConstantElementNotificationFeed.event_add_notification_message` by adding a
-new `start_callback` argument. Version 0.5.1 did not forward that eighth
-argument. The preview forwards it in every path. The optional deduplicator also
-excludes every call with callbacks or timing, and is now disabled by default
-because a callback-free repeat can still carry useful information.
-
-The same 1.12.4 source stores `start_callback` and `done_callback` when the
-visible notification feed is full, but its overflow-drain path reads the old
-`callback` field and calls `_add_notification_message` without the completion
-callback. The new default-on queue repair restores only those two exact stored
-callbacks while the matching queue head is being drained. Direct calls,
-mismatched entries, disabled state, and failures pass through unchanged.
-
-Darktide 1.12.4 also corrected Redirect Fire's `related_talents` metadata. The
-preview recognizes the correct value, marks that module `fixed upstream`,
-records no hit/action, and leaves the table identity untouched. Prime Target
-and Power Overload still have the missing presentation metadata in the 1.12.4
-source snapshot; behavior tests prove the exact fields added and restored.
-
-The 1.12.4 notes say that a general cutscene fade-to-black that never clears was
-fixed, but they do not name `path_of_trust_09`. The legacy Path 09 fallback is
-therefore retained behind its exact scene, empty-queue, time-window, and HUD
-state guards. This is deliberately not presented as proof that Path 09 remains
-broken or that Fatshark fixed that exact scene.
-
-## Module evidence map
-
-| Module | Evidence in this preview |
-| --- | --- |
-| Cursor stack | Recounts truthy references, changes depth/visibility, and refreshes clipping only when needed. |
-| Input-device handoff | Proves one same-frame selection update and no action for fixed, missing, or malformed state. |
-| Rumble refresh | Proves an explicit `false` value survives and Wwise state refreshes after setting/suppression changes. |
-| Redirect Fire | 1.12.4 source says fixed upstream; test proves zero mutation and zero action. Legacy broken shape is still repaired and restored. |
-| Prime Target | Current source still lacks the talent link; test adds the exact link and restores `nil`. |
-| Power Overload | Current source still lacks five HUD fields; test adds all five without touching buff strength, then restores them. |
-| Chain smoke | Opt-in test proves stock end transition runs before the one captured particle tail is destroyed. |
-| Servo-Skull wheel | Separate stronger opt-in control preference: removes exactly two wheel inputs from a private clone and restores the shared identity. This is not the game's 1.12.4 wheel-bound activation fix. |
-| Notification overflow callbacks | Proves a matching full-feed queue drain restores the exact start/completion callbacks, while direct, mismatched, disabled, and failure paths preserve the original call. |
-| Notification dedupe | Optional and default-off. Proves safe repetition can be suppressed, while all callbacks, delays, mission messages, and failures pass through with all eight arguments. |
-| Localization guard | Proves invalid key/value fallbacks and removal of the temporary cache entry. |
-| Lua heap controller | Exercises capacity detection, pressure thresholds, bounded steps, emergency collections, ownership conflicts, monitor-only mode, HUD, transitions, and exact tuning restoration. |
-| Campaign vox cleanup | Stops and clears every owned hover handle before stock exit/destroy. |
-| Player buff removal | Removes consecutive expired entries in reverse while keeping live order and malformed state fail-open. |
-| Penances carousel | Reverses only the mouse-wheel Y axis seen by the stock handler. |
-| Path of Trust fade | Narrow legacy fallback: arms only on `path_of_trust_09` and releases only the terminal fully-black state. The patch notes fix a matching general symptom but do not identify this scene. |
-| Toxic-gas outlines | Preserves stock stop, restores visibility only for a dead local player, and restores original callbacks on disable. |
-| Player FX lifecycle | Exercises moving particle/audio teardown, native failure retention, retry, and idempotence. |
-| Partial-effect safety | Exercises all 17 wrappers, partial cleanup, retries, late stops, unload ownership, and same-session reload. |
-| Event-listener cleanup | Proves six exact owner/event unregistrations after stock teardown with platform/server scoping. |
-| Manual audio cleanup | Proves five exact owned sources are destroyed once; unrelated and failed handles remain owned for retry. |
-| FX-handler integrity | Stress-tests generations, stale IDs, 300 ring allocations, local/network ownership, reentrancy, clear, and duplicate RPCs. |
-| Stimm Field tombstone | Proves only the exact deleted-extension row is discarded without reading the destroyed extension. |
-| Hive Scum chime | Proves a silent baseline and exactly one stock cue on a real zero-to-ready local stimm transition. This is a quality-of-life cue, not an upstream bug fix. |
-| Psykhanium danger index | Proves scope, finite-number normalization, clamping, fallback, deleted parents, and no eager source load. |
-
-## Limits
-
-These checks demonstrate source compatibility and deterministic module behavior.
-They cannot reproduce every rare engine timing condition or replace hours of
-live sessions across hardware, missions, and mod combinations. The current
-build is therefore published as a GitHub prerelease from `unstable` and as a
-Nexus Optional File, leaving stable 0.5.1 untouched. Of the 25 module switches,
-22 are on by default and the three tradeoff-bearing behaviours remain opt-in.
-
-Reported Rashad and Atrox axe ghost hits were traced separately. The client can
-predict a melee overlap and play its impact effect, but the server performs the
-authoritative lag-compensated sweep, applies enemy damage, and returns the attack
-report that drives hit confirmation. No deterministic zero-damage branch was
-found in the current axe Lua templates. A local hitbox or damage-window edit
-would therefore risk manufacturing more impact feedback without real damage, so
-this preview deliberately does not advertise or include an axe hit-registration
-fix.
+The relevant weapon audio and rendering transitions still need checking in the
+native client with those weapons equipped. Party Finder tests establish a
+specific retained-reference defect, not the cause of every reported menu crash.
+The chain-smoke report requires multiplayer conditions and was not reproduced by
+a hub load. Server hit registration, account progression, backend connectivity
+and native shutdown faults are outside the changes claimed by this release.

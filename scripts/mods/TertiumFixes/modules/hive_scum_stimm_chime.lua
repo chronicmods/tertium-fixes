@@ -25,11 +25,18 @@ function module:_observe_charge(extension)
 	local charge_state = self._charges_by_extension
 
 	if type(extension) ~= "table"
+		or rawget(extension, "__deleted") == true
 		or rawget(extension, "_is_local_unit") ~= true then
 		if type(extension) == "table" then
 			charge_state[extension] = nil
 		end
 
+		return false
+	end
+
+	local unit_data = rawget(extension, "_unit_data_extension")
+
+	if type(unit_data) == "table" and rawget(unit_data, "is_resimulating") == true then
 		return false
 	end
 
@@ -52,9 +59,16 @@ function module:_observe_charge(extension)
 		return false
 	end
 
+	local ability_enabled = extension.ability_enabled
+
+	if type(ability_enabled) == "function" and not ability_enabled(extension, ABILITY_TYPE) then
+		charge_state[extension] = nil
+		return false
+	end
+
 	local charges = remaining_ability_charges(extension, ABILITY_TYPE)
 
-	if type(charges) ~= "number" then
+	if type(charges) ~= "number" or charges ~= charges or charges < 0 or charges == math.huge then
 		charge_state[extension] = nil
 
 		return false
@@ -62,16 +76,14 @@ function module:_observe_charge(extension)
 
 	local previous_charges = charge_state[extension]
 
-	-- The first valid observation is deliberately silent so joining, spawning,
-	-- reconnecting, or equipping a ready stimm cannot create a false alert.
+	-- Joining or equipping a ready stimm does not mean it just recharged.
 	if previous_charges == nil then
 		charge_state[extension] = charges
 
 		return false
 	end
 
-	-- Commit the observation before audio playback. A failing audio call must not
-	-- replay the same transition every fixed frame or auto-quarantine the module.
+	-- Save the charge first so an audio failure cannot repeat the cue each frame.
 	charge_state[extension] = charges
 
 	if previous_charges > 0 or charges <= 0 then

@@ -272,7 +272,7 @@ check(actions >= 4, "successful lifecycle interventions are counted")
 local third_party_start = function ()
 end
 
-check(#module._records == 17, "install owns exactly seventeen registry wrappers")
+check(#module._records == 18, "install wraps all three callbacks on six templates")
 
 templates.companion_servo_skull_moving_effect.start = third_party_start
 module:on_unload()
@@ -295,7 +295,7 @@ check(
 )
 check(
 	restored == 17,
-	"unload restores sixteen owned wrappers and leaves the unpatched field original"
+	"unload restores seventeen owned callbacks and keeps the later replacement"
 )
 check(#module._records == 0, "unload releases every wrapper record and old closure root")
 

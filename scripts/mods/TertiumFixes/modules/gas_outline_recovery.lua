@@ -18,7 +18,8 @@ local TEMPLATE_NAMES = {
 }
 
 local function _is_dead_local_player(template_context)
-	if type(template_context) ~= "table"
+	if rawget(_G, "DEDICATED_SERVER") == true
+		or type(template_context) ~= "table"
 		or template_context.is_local_unit ~= true
 		or template_context.is_player ~= true then
 		return false
@@ -38,6 +39,19 @@ function module:_restore_outlines(template_context)
 	end
 
 	local managers = rawget(_G, "Managers")
+	local player_manager = managers and managers.player
+
+	if player_manager and type(player_manager.local_player) == "function" then
+		local player = player_manager:local_player(1)
+		local current_unit = player and player.player_unit
+
+		-- A late stop from the old unit must not reveal outlines while the
+		-- replacement player is in gas.
+		if current_unit and current_unit ~= template_context.unit then
+			return
+		end
+	end
+
 	local state = managers and managers.state
 	local extension_manager = state and state.extension
 
@@ -55,7 +69,7 @@ function module:_restore_outlines(template_context)
 	runtime:record_action(self.id)
 end
 
-function module:_make_wrapper(template_name, original)
+function module:_make_wrapper(original)
 	return function (template_data, template_context, ...)
 		local a, b, c, d = original(template_data, template_context, ...)
 
@@ -88,6 +102,8 @@ end
 function module:_apply()
 	if #self._records > 0 then
 		return true
+	elseif self._templates == nil then
+		return false
 	end
 
 	local templates = self._templates
@@ -107,7 +123,7 @@ function module:_apply()
 			runtime:set_available(
 				self.id,
 				false,
-				"exact 1.12.4 toxic-gas buff shape no longer matches"
+				"toxic gas buff fields no longer match"
 			)
 
 			return false
@@ -119,7 +135,7 @@ function module:_apply()
 			name = template_name,
 			template = template,
 			original = original,
-			wrapper = self:_make_wrapper(template_name, original),
+			wrapper = self:_make_wrapper(original),
 		}
 	end
 
@@ -180,7 +196,7 @@ function module:runtime_status()
 end
 
 function module:describe()
-	return "restores global outlines only when an exact toxic-gas buff stops on the dead local player"
+	return "restores outlines when a toxic gas buff ends on the dead local player"
 end
 
 return module

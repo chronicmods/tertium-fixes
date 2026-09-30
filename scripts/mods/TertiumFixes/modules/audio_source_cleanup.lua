@@ -3,7 +3,7 @@ local runtime = mod._tf_runtime
 
 local module = {
 	id = "audio_source_cleanup",
-	label = "Manual audio-source teardown repair",
+	label = "Manual audio source cleanup",
 	setting_id = "audio_source_cleanup_enabled",
 	_warned = {},
 	_dialogue_manual_sources = setmetatable({}, { __mode = "k" }),
@@ -184,7 +184,7 @@ end
 function module:_track_dialogue_source(func, owner, ...)
 	local before_source = type(owner) == "table"
 		and rawget(owner, "_wwise_source_id")
-	local result = func(owner, ...)
+	local a, b, c, d = func(owner, ...)
 
 	if before_source == nil and type(owner) == "table" then
 		local created_source = rawget(owner, "_wwise_source_id")
@@ -194,7 +194,7 @@ function module:_track_dialogue_source(func, owner, ...)
 		end
 	end
 
-	return result
+	return a, b, c, d
 end
 
 function module:_install_spec(spec)
@@ -254,7 +254,7 @@ function module:runtime_status()
 end
 
 function module:describe()
-	return "releases five source-confirmed manual Wwise handles while preserving auto-source ownership"
+	return "releases manual sources left behind by dialogue, zealot relics, mutant charges, poxbursters and flamer mutators"
 end
 
 return module

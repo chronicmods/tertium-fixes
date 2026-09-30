@@ -3,7 +3,7 @@ local runtime = mod._tf_runtime
 
 local module = {
 	id = "effect_template_safety",
-	label = "Partial effect-template initialization guards",
+	label = "Effect startup and cleanup checks",
 	setting_id = "effect_template_safety_enabled",
 	_templates = nil,
 	_records = {},
@@ -51,7 +51,9 @@ local function _missing_fields(data, fields)
 	end
 
 	for i = 1, #fields do
-		if rawget(data, fields[i]) == nil then
+		local value = rawget(data, fields[i])
+
+		if value == nil or type(value) == "table" and rawget(value, "__deleted") == true then
 			return true
 		end
 	end
@@ -60,27 +62,28 @@ local function _missing_fields(data, fields)
 end
 
 local function _context_value(template_context, field)
-	return type(template_context) == "table"
-		and rawget(template_context, field)
+	if type(template_context) == "table" then
+		return rawget(template_context, field)
+	end
 end
 
 local function _missing_world(template_context)
 	return _context_value(template_context, "world") == nil
 end
 
-local function _owner_is_missing(unit)
+local function _player_owner(unit)
 	local managers = rawget(_G, "Managers")
 	local state = managers and managers.state
 	local player_unit_spawn = state and state.player_unit_spawn
 	local owner = player_unit_spawn and player_unit_spawn.owner
 
 	if type(owner) ~= "function" then
-		return true
+		return nil
 	end
 
 	local ok, player = pcall(owner, player_unit_spawn, unit)
 
-	return not ok or player == nil
+	return ok and player or nil
 end
 
 local function _has_extension(unit, extension_name)
@@ -93,10 +96,11 @@ local function _has_extension(unit, extension_name)
 
 	local ok, extension = pcall(has_extension, unit, extension_name)
 
-	return ok and extension ~= nil
+	return ok and extension ~= nil and extension ~= false
+		and not (type(extension) == "table" and rawget(extension, "__deleted") == true)
 end
 
-local function _game_object_is_ready(unit)
+local function _game_object_is_ready(unit, expected_session, expected_id)
 	local managers = rawget(_G, "Managers")
 	local state = managers and managers.state
 	local game_session_manager = state and state.game_session
@@ -128,7 +132,9 @@ local function _game_object_is_ready(unit)
 	if not session_ok
 		or game_session == nil
 		or not id_ok
-		or game_object_id == nil then
+		or game_object_id == nil
+		or expected_session ~= nil and expected_session ~= game_session
+		or expected_id ~= nil and expected_id ~= game_object_id then
 		return false
 	end
 
@@ -168,8 +174,8 @@ local function _cleanup_particle(
 		return true, 0
 	end
 
-	local world = _context_value(template_context, "world")
-		or rawget(template_data, "_world")
+	local world = rawget(template_data, "_world")
+		or _context_value(template_context, "world")
 
 	if world == nil
 		or not _call_engine(
@@ -208,10 +214,10 @@ local function _cleanup_sound(
 	local needs_stop = playing_id ~= nil
 		or source_id ~= nil and stop_event_name ~= nil
 	local needs_destroy = destroy_manual_source and source_id ~= nil
-	local wwise_world = _context_value(
+	local wwise_world = rawget(template_data, "wwise_world") or _context_value(
 		template_context,
 		"wwise_world"
-	) or rawget(template_data, "wwise_world")
+	)
 
 	if (needs_stop or needs_destroy) and wwise_world == nil then
 		return false, 0
@@ -350,14 +356,30 @@ local function _never_suppress()
 	return false
 end
 
+local function _guard_moving_start(template_data)
+	if _is_dedicated_server() then
+		return false
+	end
+
+	local unit = type(template_data) == "table" and rawget(template_data, "unit")
+
+	return _known_dead("ALIVE", unit)
+		or not _has_extension(unit, "fx_system")
+		or not _has_extension(unit, "flying_companion_movement_system")
+end
+
 local function _guard_moving_update(template_data)
 	if _is_dedicated_server() then
 		return false
 	end
 
+	local movement = type(template_data) == "table"
+		and rawget(template_data, "flying_companion_movement_extension")
+
 	return type(template_data) ~= "table"
 		or _known_dead("ALIVE", rawget(template_data, "unit"))
-		or rawget(template_data, "flying_companion_movement_extension") == nil
+		or not movement
+		or type(movement) == "table" and rawget(movement, "__deleted") == true
 		or rawget(template_data, "wwise_world") == nil
 		or rawget(template_data, "source_id") == nil
 end
@@ -370,7 +392,27 @@ local function _guard_aim_start(template_data)
 	local unit = type(template_data) == "table"
 		and rawget(template_data, "unit")
 
-	return _known_dead("ALIVE", unit) or _owner_is_missing(unit)
+	if _known_dead("ALIVE", unit) then
+		return true
+	end
+
+	local player = _player_owner(unit)
+
+	if not player then
+		return true
+	elseif player.remote then
+		return false
+	end
+
+	local player_unit = player.player_unit
+
+	return _known_dead("ALIVE", player_unit)
+		or not _has_extension(unit, "fx_system")
+		or not _has_extension(player_unit, "unit_data_system")
+		or not _has_extension(player_unit, "input_system")
+		or not _has_extension(player_unit, "talent_system")
+		or not _has_extension(player_unit, "ability_system")
+		or not _has_extension(player_unit, "companion_spawner_system")
 end
 
 local function _guard_aim_update(template_data)
@@ -423,7 +465,7 @@ local function _guard_flamer_update(template_data, template_context)
 		or rawget(template_data, "attachment_node") == nil
 		or rawget(template_data, "game_session") == nil
 		or rawget(template_data, "game_object_id") == nil
-		or not _game_object_is_ready(unit)
+		or not _game_object_is_ready(unit, template_data.game_session, template_data.game_object_id)
 end
 
 local function _guard_empowered_start(template_data, template_context)
@@ -488,7 +530,7 @@ local function _guard_charged_update(template_data, template_context)
 		or rawget(template_data, "_game_session") == nil
 		or rawget(template_data, "_game_object_id") == nil
 		or rawget(template_data, "stream_effect_id") == nil
-		or not _game_object_is_ready(rawget(template_data, "unit"))
+		or not _game_object_is_ready(template_data.unit, template_data._game_session, template_data._game_object_id)
 end
 
 local function _guard_arc_start(template_data, template_context)
@@ -533,6 +575,7 @@ local SPECS = {
 		name = "companion_servo_skull_moving_effect",
 		cleanup = _cleanup_moving,
 		guards = {
+			start = _guard_moving_start,
 			update = _guard_moving_update,
 			stop = _never_suppress,
 		},
@@ -588,7 +631,7 @@ local SPECS = {
 	},
 }
 
-local PATCH_COUNT = 17
+local PATCH_COUNT = 18
 
 local function _has_terminal_lifecycle(state)
 	return state
@@ -676,6 +719,10 @@ function module:_record_suppression(template_data, key)
 end
 
 function module:_run_cleanup(spec, template_data, template_context)
+	if type(template_data) ~= "table" then
+		return false
+	end
+
 	local state = self:_lifecycle_state(
 		template_data,
 		spec.name,
@@ -719,9 +766,8 @@ function module:_make_wrapper(spec, field, original, guard)
 			false
 		)
 
-		-- Lifecycle interception deliberately outlives the setting/mod toggle.
-		-- Once start was suppressed or cleanup began, vanilla must not observe
-		-- the partial/cleared handles on a later update, start, or stop.
+		-- Finish cleanup even if the setting was switched off. The stock stop
+		-- still expects the handles we already released.
 		if _has_terminal_lifecycle(state) then
 			if field == "start" then
 				return
@@ -770,8 +816,7 @@ function module:_make_wrapper(spec, field, original, guard)
 					)
 				end
 
-				-- Even an incomplete retry is terminal for this wrapper. Falling
-				-- through would ask vanilla to stop already-cleared handles.
+				-- A failed retry must not pass cleared handles to the stock stop.
 				return
 			end
 		end
@@ -881,6 +926,8 @@ end
 function module:_apply()
 	if #self._records > 0 then
 		return true
+	elseif self._templates == nil then
+		return false
 	end
 
 	local staged = {}
@@ -899,7 +946,7 @@ function module:_apply()
 			runtime:set_available(
 				self.id,
 				false,
-				"exact 1.12.4 effect-template shape no longer matches"
+				"effect template fields no longer match"
 			)
 
 			return false
@@ -979,22 +1026,19 @@ function module:on_enabled()
 end
 
 function module:on_disabled()
-	-- Keep the wrappers and weak lifecycle tombstones installed. Guards pass
-	-- through while inactive, but late authoritative stops remain idempotent.
+	-- Existing partial effects still need their final stop. Other calls pass through.
 end
 
 function module:on_unload()
-	-- Unloading ends the late-stop window. Restore only wrappers this module
-	-- still owns so a same-session reload cannot retain or stack old closures.
 	self:_restore()
 end
 
 function module:runtime_status()
-	return #self._records == PATCH_COUNT and "guarding" or "inactive"
+	return runtime:is_active(self.id) and #self._records == PATCH_COUNT and "guarding" or "inactive"
 end
 
 function module:describe()
-	return "guards six exact client FX templates and idempotently releases partially initialized particles and audio"
+	return "checks six client effects before startup and update, and cleans up effects that could not finish starting"
 end
 
 return module

@@ -1,6 +1,7 @@
 import { spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import path from "node:path";
+import fs from "node:fs";
 
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const fengariCli = path.join(
@@ -11,37 +12,38 @@ const fengariCli = path.join(
   "lua-cli.js",
 );
 
-const suites = [
-  "deferred_loader_behavior.lua",
-  "effect_template_safety_behavior.lua",
-  "engine_cleanup_behavior.lua",
-  "fx_handler_integrity_behavior.lua",
-  "gc_pressure_behavior.lua",
-  "hive_scum_stimm_chime_behavior.lua",
-  "input_and_buff_behavior.lua",
-  "metadata_repairs_behavior.lua",
-  "notification_dedupe_behavior.lua",
-  "psykhanium_source_guards_behavior.lua",
-  "remaining_repairs_behavior.lua",
-  "runtime_hardening_behavior.lua",
-  "runtime_performance_behavior.lua",
-];
+const sourceRoot = process.env.DARKTIDE_SOURCE_ROOT || process.argv[2];
+if (!sourceRoot || !fs.existsSync(path.join(sourceRoot, "scripts"))) {
+  console.error("Set DARKTIDE_SOURCE_ROOT or pass the extracted game source directory.");
+  process.exit(2);
+}
+const suites = fs.readdirSync(path.join(repoRoot, "tests"))
+  .filter(name => name.endsWith("_behavior.lua")).sort();
 
 for (const suite of suites) {
-  const result = spawnSync(process.execPath, [fengariCli, path.join("tests", suite)], {
+  const args = [fengariCli, path.join("tests", suite)];
+  if (suite.endsWith("_source_behavior.lua")) args.push(sourceRoot);
+  const result = spawnSync(process.execPath, args, {
     cwd: repoRoot,
     encoding: "utf8",
-    stdio: "inherit",
+    env: { ...process.env, DARKTIDE_SOURCE_ROOT: sourceRoot },
+    timeout: 60000,
+    maxBuffer: 4 * 1024 * 1024,
   });
+
+  process.stdout.write(result.stdout || "");
+  process.stderr.write(result.stderr || "");
 
   if (result.error) {
     console.error(`Unable to run ${suite}: ${result.error.message}`);
     process.exit(1);
   }
 
-  if (result.status !== 0) {
-    process.exit(result.status ?? 1);
+  const completed = /\b[1-9]\d* (?:checks, 0 failures|passed, 0 failed)\b/.test(result.stdout || "");
+  if (result.status !== 0 || !completed || /^\s*SKIP\b/m.test(result.stdout || "") || (result.stderr || "").trim()) {
+    console.error(`${suite} failed or did not complete all its checks.`);
+    process.exit(result.status || 1);
   }
 }
 
-console.log(`behavior gate: ${suites.length} suites passed`);
+console.log(`behaviour gate: ${suites.length} suites passed without skips`);

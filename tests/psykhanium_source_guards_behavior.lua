@@ -418,13 +418,14 @@ for _, case in ipairs(malformed_cases) do
     )
 end
 
-local danger_settings = {
+local danger_levels = {
     { name = "uprising" },
     { name = "malice" },
     { name = "heresy" },
     { name = "damnation" },
     { name = "auric" },
 }
+local danger_settings = { danger_levels = danger_levels }
 local settings_load_ok, settings_load_error = pcall(
     danger_defer.handler,
     danger_settings

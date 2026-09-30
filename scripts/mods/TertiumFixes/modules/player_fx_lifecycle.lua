@@ -3,7 +3,7 @@ local runtime = mod._tf_runtime
 
 local module = {
 	id = "player_fx_lifecycle",
-	label = "Player FX lifecycle repair",
+	label = "Player effect cleanup",
 	setting_id = "player_fx_lifecycle_enabled",
 	_warned = {},
 }
@@ -156,9 +156,7 @@ function module:_cleanup_moving_sfx(fx_extension)
 		end
 	end
 
-	-- Keep failed handles inside the active buffer so a repeated teardown can
-	-- retry them. Cleared records are harmless to revisit and preserve the
-	-- source buffer's fixed record layout.
+	-- Keep failed handles in the buffer so another teardown can retry them.
 	moving_sfx.size = pending and size or 0
 
 	return cleaned
@@ -251,8 +249,7 @@ function module:_cleanup_moving_vfx(fx_extension)
 		end
 	end
 
-	-- A native query/destruction failure must not make the retained effect ID
-	-- unreachable to a later teardown attempt.
+	-- Leave failed particle IDs available for another teardown attempt.
 	moving_vfx.size = pending and size or 0
 
 	return cleaned
@@ -322,7 +319,7 @@ function module:runtime_status()
 end
 
 function module:describe()
-	return "repairs the missing world for local screen-space loops and releases moving FX buffers on player teardown"
+	return "supplies the missing world for local screen effects and releases moving sounds and particles when the player is removed"
 end
 
 return module

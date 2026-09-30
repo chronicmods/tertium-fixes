@@ -233,8 +233,8 @@ runtime:update(1.3)
 
 check(
 	#update_calls.interval == interval_calls_before_long_tick + 1
-		and approximately(update_calls.interval[2], 1.4),
-	"long tick schedules at most one interval callback with accumulated dt"
+		and approximately(update_calls.interval[2], 1.3),
+	"long tick runs once without counting the previous remainder twice"
 )
 
 local toggle_reads_before_change = get_calls.toggle_feature
@@ -329,6 +329,57 @@ runtime:update(0)
 check(
 	update_calls.toggle == toggle_calls_before_quarantine,
 	"quarantined updater remains inert on later ticks"
+)
+
+-- A quarantine during update must not shift another updater out of this tick.
+local following_calls = 0
+local failing_updater = {
+	id = "fails_during_update",
+	update = function () error("update failed", 0) end,
+}
+local following_updater = {
+	id = "follows_failed_update",
+	update = function () following_calls = following_calls + 1 end,
+}
+
+runtime:add_module(failing_updater)
+runtime:add_module(following_updater)
+runtime:update(0.1)
+
+check(
+	failing_updater.state.quarantined and following_calls == 1,
+	"quarantine during a tick does not skip the following updater"
+)
+
+local elapsed_sum = 0
+local interval_calls = 0
+local clock_probe = {
+	id = "elapsed_time_probe",
+	update_interval = 0.05,
+	update = function (_, dt)
+		elapsed_sum = elapsed_sum + dt
+		interval_calls = interval_calls + 1
+	end,
+}
+
+runtime:add_module(clock_probe)
+
+for _ = 1, 600 do
+	runtime:update(0.016)
+end
+
+check(
+	interval_calls >= 191 and interval_calls <= 192
+		and approximately(elapsed_sum + clock_probe.state.update_elapsed, 9.6),
+	"interval callbacks account for real elapsed time across frame remainders"
+)
+
+local clock_before_nan = runtime.clock
+runtime:update(0 / 0)
+
+check(
+	runtime.clock == clock_before_nan and clock_probe.state.update_elapsed == clock_probe.state.update_elapsed,
+	"an invalid frame delta cannot poison the runtime or interval clock"
 )
 
 io.write(

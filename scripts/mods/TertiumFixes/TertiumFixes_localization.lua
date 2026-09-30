@@ -1,15 +1,49 @@
 return {
+	graphics_group = { en = "Graphics presets" },
+	graphics_presets_enabled = { en = "Apply graphics preset" },
+	graphics_presets_enabled_description = { en = "Applies the selected rendering settings and saves the previous values. Turn this off to restore settings still owned by the preset. Changing presets may briefly pause rendering." },
+	graphics_preset = { en = "Preset" },
+	graphics_preset_description = { en = "Ultra Performance removes AO, shadows and fog volumes, including a change to how gas areas look. Performance keeps low fog. Balanced and Quality retain more lighting detail. Resolution, upscaling, FOV, textures and combat particles are kept." },
+	graphics_ultra_performance = { en = "Ultra Performance" },
+	graphics_performance = { en = "Performance" },
+	graphics_balanced = { en = "Balanced" },
+	graphics_quality = { en = "Quality" },
+	command_graphics_description = { en = "Show graphics preset status, or use /tf_graphics restore to restore the captured settings." },
+	input_group = { en = "Inputs" },
+	menus_group = { en = "Menus and HUD" },
+	effects_group = { en = "Sounds and effects" },
+	memory_group = { en = "Lua memory" },
+	compatibility_group = { en = "Compatibility and experimental fixes" },
+	diagnostics_group = { en = "Troubleshooting" },
+	input_retry_enabled = { en = "Keep briefly blocked inputs" },
+	input_retry_enabled_description = { en = "Keeps a recent press for up to 0.75 seconds while the game cannot accept it. Clears it when the action starts, the situation changes, or you cancel it." },
+	input_retry_swap_enabled = { en = "Retry weapon swaps" },
+	input_retry_swap_enabled_description = { en = "Keeps the slot you selected, including quick swap and scrolling. Stops when that slot is reached or another selection replaces it." },
+	input_retry_ability_enabled = { en = "Retry ability activation" },
+	input_retry_ability_enabled_description = { en = "Retries a briefly blocked combat-ability press. Normal aiming, release and cancellation still apply." },
+	input_retry_special_enabled = { en = "Retry weapon specials" },
+	input_retry_special_enabled_description = { en = "Keeps a special-action press during a short input block and clears it as soon as the action starts." },
+	input_retry_reload_enabled = { en = "Retry reloads" },
+	input_retry_reload_enabled_description = { en = "Keeps a reload press through a short input block. Changing weapon cancels it." },
+	input_retry_blitz_enabled = { en = "Retry quick Blitz actions" },
+	input_retry_blitz_enabled_description = { en = "Retries quick Blitz presses where the equipped ability supports them. Grenades that must be equipped keep their normal controls." },
+	ui_resource_cleanup_enabled = { en = "Clean up menu icons and views" },
+	ui_resource_cleanup_enabled_description = { en = "Handles repeated icon and view releases, restores icons after rendering resumes, and releases portraits left by departing Party Finder members." },
+	social_roster_portrait_enabled = { en = "Keep equipped frames in the Social menu" },
+	social_roster_portrait_enabled_description = { en = "Finishes cleaning up the old frame before loading its replacement, so a late callback cannot replace the equipped frame with the default one." },
+	weapon_effect_transitions_enabled = { en = "Fix weapon sounds after inspecting" },
+	weapon_effect_transitions_enabled_description = { en = "Stops old chem-grenade and power-weapon loops when the camera changes, and prevents a visibility refresh from replaying the force greatsword charge sound." },
 	mod_name = {
 		en = "Tertium Fixes",
 	},
 	mod_description = {
-		en = "A collection of client-side fixes for stuck menus, missed inputs, incorrect HUD information, lingering audio and effects, long-session cleanup, and other common Darktide problems.",
+		en = "Client fixes for dropped inputs, stuck menus, stale HUD icons, lingering sounds and effects, and resources left behind during play.",
 	},
 	cursor_stack_enabled = {
 		en = "Repair cursor reference stack",
 	},
 	cursor_stack_enabled_description = {
-		en = "Reconciles cursor depth with the game's reference set after cursor push/pop calls. Helps prevent stuck or invisible cursors.",
+		en = "Corrects the cursor count when menus open or close, helping prevent a cursor that gets stuck or disappears.",
 	},
 	input_device_handoff_enabled = {
 		en = "Use newly pressed input devices immediately",
@@ -27,13 +61,13 @@ return {
 		en = "Correct Redirect Fire talent description",
 	},
 	veteran_redirect_tooltip_enabled_description = {
-		en = "Compatibility fallback for the two old broken Veteran buff-to-talent links. Darktide 1.12.4 fixed these upstream, so the module reports that and makes no change on the current game.",
+		en = "Repairs the old missing talent links. The current game already includes the fix, so this stays inactive there.",
 	},
 	zealot_prime_target_tooltip_enabled = {
 		en = "Correct Prime Target tactical-overlay text",
 	},
 	zealot_prime_target_tooltip_enabled_description = {
-		en = "Links Prime Target's exact timed effect back to its Zealot talent so the tactical overlay resolves the proper name and description.",
+		en = "Repairs Prime Target's missing tactical-overlay description on older builds. Darktide 1.13.0 includes the correct link, so this stays inactive there.",
 	},
 	power_overload_hud_enabled = {
 		en = "Show the Power Overload ally-buff icon",
@@ -42,28 +76,28 @@ return {
 		en = "Adds presentation metadata to the exact 8-second Power Overload ally buff without changing its gameplay values.",
 	},
 	chain_smoke_cleanup_enabled = {
-		en = "Aggressively stop chain-weapon smoke (prototype)",
+		en = "Remove lingering chain-weapon smoke",
 	},
 	chain_smoke_cleanup_enabled_description = {
 		en = "Optional workaround for persistent chain-weapon smoke. Preserves the power-down sound, but deliberately removes the normal particle tail. Disabled by default.",
 	},
 	servo_skull_scroll_enabled = {
-		en = "Optional: isolate Servo-Skull mouse-wheel input",
+		en = "Block weapon scrolling while holding the Servo-Skull",
 	},
 	servo_skull_scroll_enabled_description = {
-		en = "Stronger opt-in control behaviour, separate from Darktide 1.12.4's wheel-bound activation fix. It blocks all wheel weapon cycling while the Servo-Skull is held, then restores it when the skull is put away.",
+		en = "Stops the wheel from switching weapons while you hold the Servo-Skull. Off by default; keyboard and controller selection still work.",
 	},
 	notification_queue_callbacks_enabled = {
-		en = "Preserve callbacks in the notification overflow queue",
+		en = "Keep queued notifications working",
 	},
 	notification_queue_callbacks_enabled_description = {
-		en = "Restores start and completion callbacks that Darktide 1.12.4 drops when a full notification feed drains its overflow queue.",
+		en = "Restores the start and completion actions lost when a notification has to wait for space on screen.",
 	},
 	notification_dedupe_enabled = {
-		en = "Optional: deduplicate repeated safe notifications",
+		en = "Hide repeated basic notifications",
 	},
 	notification_dedupe_enabled_description = {
-		en = "Suppresses identical, callback-free default and alert notifications inside a short window. Disabled by default because even a technically safe repeat can still be useful feedback.",
+		en = "Hides identical basic messages sent close together. Timed messages and messages with actions stay visible. Off by default because some repeats are useful.",
 	},
 	notification_dedupe_window_seconds = {
 		en = "Notification duplicate window (seconds)",
@@ -78,10 +112,10 @@ return {
 		en = "Also deduplicates identical callback-free mission messages. Disabled by default to preserve repeated objective updates.",
 	},
 	localization_guard_enabled = {
-		en = "Guard invalid localization keys",
+		en = "Guard localisation values",
 	},
 	localization_guard_enabled_description = {
-		en = "Returns a safe fallback when client code passes nil, empty, or non-string localization keys.",
+		en = "Guards invalid keys and values, and supplies the Social menu's missing initial party count. Normal party updates keep their real counts.",
 	},
 	localization_fallback_mode = {
 		en = "Localization fallback",
@@ -96,22 +130,22 @@ return {
 		en = "Blank text",
 	},
 	gc_enabled = {
-		en = "Lua heap controller",
+		en = "Monitor Lua memory",
 	},
 	gc_enabled_description = {
-		en = "Monitors Darktide's Lua memory and uses cautious, limited cleanup when it remains under heavy pressure. Monitoring and the heap meter can stay enabled even when cleanup is not permitted.",
+		en = "Shows how much memory the game's Lua scripts use. Extra cleanup is a separate option and is off by default.",
 	},
 	gc_cleaning_permitted = {
-		en = "Permit automatic and manual cleanup",
+		en = "Allow extra Lua cleanup",
 	},
 	gc_cleaning_permitted_description = {
-		en = "Allows this module to tune or invoke the Lua collector. Disable it to retain heap monitoring and the meter without any collector changes or cleanup requests.",
+		en = "Allows extra collection and changes to Lua collector tuning. Darktide already manages collection; leave this off unless you are testing a memory problem. Full cleanup can cause a brief pause.",
 	},
 	gc_capacity_fallback_mb = {
 		en = "Fallback Lua heap capacity (MB)",
 	},
 	gc_capacity_fallback_mb_description = {
-		en = "Used only when the game launch arguments do not provide --lua-heap-mb-size. Pressure thresholds are calculated as percentages of this capacity.",
+		en = "Used when the game does not report a Lua heap limit. This is your configured estimate, not measured capacity or total RAM. The meter marks an estimated capacity with ~.",
 	},
 	gc_convenient_cleanup_enabled = {
 		en = "Clean at safe state transitions",
@@ -135,7 +169,7 @@ return {
 		en = "Show Lua heap meter",
 	},
 	gc_hud_enabled_description = {
-		en = "Shows current Lua heap use, detected capacity, percentage and pressure band. The meter is forced visible at 85%% until pressure clears.",
+		en = "Shows Lua memory use and its configured limit. A ~ means the limit is estimated. The meter appears at high pressure even when normally hidden.",
 	},
 	gc_hud_x_percent = {
 		en = "Heap meter horizontal position (%%)",
@@ -150,10 +184,10 @@ return {
 		en = "Positions the meter from the top edge as a percentage of the active HUD workspace height.",
 	},
 	gc_shutdown_diagnostic_enabled = {
-		en = "Record abnormal-exit heap context",
+		en = "Remember memory pressure after an unexpected exit",
 	},
 	gc_shutdown_diagnostic_enabled_description = {
-		en = "Stores only the last broad heap-pressure band and whether the mod recorded a clean unload. A warning on the next launch is diagnostic context, not a crash-cause claim.",
+		en = "Remembers the previous memory-pressure band and whether shutdown finished normally. This can help troubleshooting but does not identify what caused a crash.",
 	},
 	gc_manual_clean_key = {
 		en = "Manual full-cleanup key",
@@ -204,10 +238,10 @@ return {
 		en = "Supplies the missing world for local first-person looping particles and releases moving sound and particle handles when a player FX extension is destroyed.",
 	},
 	effect_template_safety_enabled = {
-		en = "Guard partially initialized client effects",
+		en = "Handle effects that did not finish starting",
 	},
 	effect_template_safety_enabled_description = {
-		en = "Prevents six exact Servo-Skull and arc-chain effects from updating with missing state, cleans their owned particles and audio, and makes later stops harmless.",
+		en = "Stops Servo-Skull and arc-chain effects from using missing or destroyed state, and releases any particles and sounds that did start.",
 	},
 	event_listener_cleanup_enabled = {
 		en = "Release leaked event listeners",
@@ -240,10 +274,10 @@ return {
 		en = "Makes malformed or duplicate FX start/stop messages fail closed on the client. Disabled by default because slot-only messages cannot prove ordering after reuse.",
 	},
 	stimm_field_deleted_extension_guard_enabled = {
-		en = "Discard destroyed Stimm Field cache rows",
+		en = "Clear expired Stimm Field references",
 	},
 	stimm_field_deleted_extension_guard_enabled_description = {
-		en = "Removes only proximity rows whose cached buff extension is explicitly destroyed before the field's linger pass can call it.",
+		en = "Drops a Stimm Field's reference to a destroyed buff connection when a player leaves, returns or remains nearby.",
 	},
 	hive_scum_stimm_chime_enabled = {
 		en = "Play a chime when the Hive Scum stimm is ready",
@@ -258,7 +292,7 @@ return {
 		en = "Validates and clamps only the Training Grounds shooting-range danger index, falling back safely when saved settings are malformed.",
 	},
 	auto_quarantine_enabled = {
-		en = "Auto-quarantine failing modules",
+		en = "Stop a fix after repeated errors",
 	},
 	auto_quarantine_enabled_description = {
 		en = "Stops an individual fix after repeated internal errors while leaving the other fixes active.",
@@ -267,7 +301,7 @@ return {
 		en = "Errors before quarantine",
 	},
 	auto_quarantine_threshold_description = {
-		en = "Number of caught module errors allowed before that module is quarantined.",
+		en = "Number of consecutive errors before a fix is stopped and its changes are cleaned up.",
 	},
 	diagnostic_logging = {
 		en = "Diagnostic log messages",

@@ -1,356 +1,144 @@
-# Tertium Fixes 0.5.2-unstable.1
+# Tertium Fixes 0.6.0-unstable.2
 
 Created and maintained by chronic.
 
-![Tertium Fixes](assets/brand/tertium-fixes-hero.jpg)
+![Tertium Fixes](assets/brand/tertium-fixes-banner.jpg)
 
-**[Download the 0.5.2-unstable.1 preview](releases/v0.5.2-unstable.1/TertiumFixes-v0.5.2-unstable.1.zip)**
-Client-side repairs and cleanup for Darktide. Unofficial community mod.
+Tertium Fixes brings together client fixes for dropped inputs, stuck menus,
+incorrect HUD information, lingering sounds and effects, and resources that
+remain in memory after their owner has finished with them. Each fix can be
+switched off separately in Mod Options.
 
-> This is the unstable preview branch. It targets Darktide 1.12.4 and is being
-> published separately for testing. The stable `main` branch and Nexus Main
-> file remain on 0.5.1.
+This update targets Darktide **1.13.0, Depths of the Damned**. It includes new
+input buffering, fixes for the Social menu and Party Finder, and repairs to
+weapon sounds after inspecting or changing camera view. It also corrects
+several problems in the mod's own update scheduling, reset and cleanup code.
+Four optional graphics presets are included in this revision.
 
-## What changed in this preview
+## Graphics presets
 
-- Updated every game-source contract to the 1.12.4 snapshot.
-- Updated the notification path for Darktide's new `start_callback` argument.
-  The complete eight-argument call now passes through unchanged. Duplicate
-  suppression remains available as an opt-in, but is disabled by default.
-- Added a separate 1.12.4 repair for the notification overflow queue, which
-  stores start and completion callbacks but drops both when the queue drains.
-- Detects that Darktide 1.12.4 fixed Redirect Fire upstream. The module reports
-  `fixed upstream` and deliberately makes no change instead of claiming a hit.
-- Retains the narrow `path_of_trust_09` black-screen fallback because the 1.12.4
-  notes fix a matching general cutscene symptom without naming that exact scene.
-- Investigated reported ghost hits on Rashad and Atrox axes. No client-side
-  damage patch is included: Darktide's server owns damage and hit confirmation,
-  so changing local hitboxes or attack windows could only create false impact
-  feedback without making the rejected hit deal damage.
-- Added direct behavior coverage for every one of the 25 modules, including
-  tests that assert real state changes, exact cleanup counts, restoration, and
-  fail-open paths.
+Choose **Ultra Performance, Performance, Balanced or Quality** in the Graphics
+presets group. Performance removes AO and shadow passes while keeping low fog;
+Ultra Performance also removes fog volumes, which changes how fog and gas areas
+look. Balanced and Quality retain more lighting detail. Base illumination stays
+on so the scene remains readable.
 
-The full evidence and limits are in [VERIFICATION.md](VERIFICATION.md).
+The presets preserve resolution, upscaling, FOV, textures, combat particles and
+your existing geometry/decal limits. Ray tracing, screen-space reflections and
+costly post effects stay off in all four. This feature is off by default in the
+download. Disable More Graphics Options when using it, and turn it off to restore
+the settings it still owns. See [GRAPHICS.md](GRAPHICS.md) for the full matrix and
+restoration behaviour.
 
-Tertium Fixes is an all-in-one collection of client-side repairs and cleanup for
-Darktide. It focuses on the irritating problems that can be fixed safely on the
-player's side: stuck interface state, missed inputs, incorrect HUD information,
-lingering audio, broken visual effects, stale buff icons, and avoidable Lua
-memory pressure during long sessions.
+## Inputs
 
-The default setup is intended to be install-and-play. Twenty-two of the
-twenty-five module switches are enabled immediately. On Darktide 1.12.4 the
-Redirect Fire module detects the official correction and stays inert. The
-remaining three are optional behaviours with noticeable tradeoffs, so they
-stay off until you choose to use them. Every repair has its own switch.
+Weapon swaps, combat abilities, weapon specials, reloads and supported quick
+Blitz actions can keep a briefly blocked press for up to 0.75 seconds. The press
+goes back through the game's normal input handling and is cleared when the
+action starts, another intention replaces it, or the situation changes.
 
-Tertium Fixes does not change weapon stats, talents, enemies, rewards,
-difficulty, damage, movement, cooldowns, or mission rules. It also does not
-lower texture quality, lighting, resolution, animation quality, normal particle
-quality, or audio quality.
+Quick swap and scrolling remember the selected slot, so retrying a press does
+not keep swapping back and forth. Normal aiming, holds, releases and deliberate
+cancellations still apply. This improves a press lost to a short action or
+input block; it cannot make an unavailable ability fire or remove network delay.
 
-## What it fixes
+The input settings are independent. Disable **Guarantee Weapon Swap**,
+**Guarantee Ability Activation** and **Guarantee Special Action** when using
+the corresponding Tertium Fixes options. Running both can queue the same press
+twice. The first two older mods also hook a method removed in Darktide 1.13.0.
 
-### Input and menus
+## Menus and HUD
 
-- **Stuck or missing cursor** - repairs cursor state after menus request or
-  release it. This helps when the cursor stays visible during gameplay,
-  disappears inside a menu, or becomes trapped after moving between screens.
-- **Missed first input after changing devices** - updates the active device as
-  soon as a controller, keyboard, or mouse is used, helping prevent the first
-  press after a device switch from being swallowed.
-- **Controller vibration changes not applying immediately** - refreshes rumble
-  after the setting changes or after the game temporarily suppresses it.
-- **Reversed Penances carousel scrolling** - makes the mouse wheel behave like
-  the surrounding menus. Keyboard and controller navigation are untouched.
+- Repeated icon or view releases no longer try to use an owner that has already
+  been removed.
+- Portraits and weapon icons retain their references when rendering is paused
+  and resumed.
+- Party Finder releases the portrait, frame and insignia left behind when a
+  member leaves or their profile becomes unavailable.
+- The Social roster keeps the equipped frame after a profile refresh.
+- The Social menu supplies the initial party count required by its heading,
+  without replacing the real count on later updates.
+- Cursor counts, Penances wheel direction, expired buff icons and queued
+  notification callbacks are repaired where the matching game state is present.
+- The Power Overload ally buff receives the missing HUD information.
 
-### Talents, buffs, and HUD
+The older Redirect Fire and Prime Target description fixes recognise the
+corrections already included in the current game and leave them alone.
 
-- **Redirect Fire showing the wrong description** - keeps the guarded repair
-  for the older broken metadata, but Darktide 1.12.4 has fixed this upstream.
-  The preview detects the correct link and performs no replacement.
-- **Prime Target missing tactical-overlay text** - restores the proper Zealot
-  talent name and description where the overlay would otherwise show only an
-  icon.
-- **Power Overload missing its ally-buff icon** - restores the intended icon and
-  presentation information for the eight-second ally buff without changing the
-  buff itself.
-- **Notification callbacks disappearing from the overflow queue** - restores
-  the exact start and completion callbacks that 1.12.4 stores when the feed is
-  full but fails to pass back when that queued notification is finally shown.
-- **Repeated duplicate notifications (optional)** - suppresses identical safe
-  messages inside a short window. Notifications with actions, delays, or special
-  behaviour are left alone. This is disabled by default because even a safe
-  repeated message can still be useful feedback.
-- **Broken localization values causing interface errors** - replaces invalid or
-  missing text with either a visible diagnostic placeholder or blank text,
-  depending on your setting.
-- **Expired buff icons remaining on the HUD** - removes consecutive expired
-  entries that the normal cleanup pass can skip. Live buffs and their order are
-  not changed.
-- **Legacy Path 09 black-screen fallback** - watches only the exact
-  `path_of_trust_09` terminal black state. The 1.12.4 notes say a matching
-  general cutscene-fade problem was fixed, but they do not identify this exact
-  scene, so the narrow fallback remains instead of claiming an upstream fix.
-- **Outlines not returning after dying in toxic gas** - restores outlines when
-  the relevant gas effect ends while the local player is dead. Gas gameplay is
-  unchanged.
-- **Invalid Psykhanium danger setting** - repairs malformed or out-of-range
-  saved values in the Training Grounds shooting range instead of letting the
-  selector break.
-- **Hive Scum personal stimm ready chime** - plays Darktide's normal
-  ability-ready sound once when the local personal stimm changes from empty to
-  usable. Joining, spawning, reconnecting, equipping the ability, or enabling
-  the option while it is already ready stays silent, so the cue only represents
-  a real recharge.
+## Sounds and effects
 
-### Audio and effects
+The update stops displaced chem-grenade loops and power-weapon lockout sounds
+after inspecting a weapon or changing camera view. It also prevents a force
+greatsword from replaying its charge cue when a visibility refresh, such as
+picking up a stimm, has not actually added any charges.
 
-- **Campaign Data Transmission audio following the player** - stops the stored
-  hover sound when leaving or closing the affected campaign screen.
-- **Player particles and moving effects not being released correctly** - cleans
-  up moving particles and sounds when their owning player effect is destroyed,
-  and supplies missing effect state where the game already has the right value.
-- **Partly started effects continuing with missing state** - stops several
-  Servo-Skull, flamer, empowered, charged, and arc-chain effects from updating
-  after startup failed. Anything that did start is released safely.
-- **Event listeners surviving after their owner is gone** - releases affected
-  controller-haptic, Survival objective, and Expedition rescue listeners when
-  the related client object is destroyed.
-- **Manually created sounds being left behind** - cleans up affected dialogue,
-  relic, flamer, mutant, and bomber audio handles. Unrelated sound is not
-  touched.
-- **Client effect slots being cleared incorrectly** - protects reused local
-  effect slots so an older effect cannot tear down a newer effect that took its
-  place. Repeated cleanup is also made harmless.
-- **Destroyed Stimm Field state remaining cached** - removes a field's cached
-  entry only after its stored buff extension has actually been destroyed.
+Existing cleanup covers affected player effects, campaign transmission sounds,
+manual audio sources, Servo-Skull and arc effects, toxic-gas outline recovery
+after death, and stale Stimm Field references. The Hive Scum stimm-ready cue now
+ignores prediction replay, so one recharge does not chime again as old frames
+are replayed.
 
-## Lua memory and long-session cleanup
+The client repairs do not alter weapon damage, ability costs or enemy health.
+Graphics changes are controlled by the separate preset option. The chain-weapon smoke
+setting removes the normal smoke tail as well as a stuck one, and stays off by
+default.
 
-Tertium Fixes includes a Lua heap controller to reduce avoidable memory pressure
-during longer play sessions. The heap meter shows memory used by Darktide's Lua
-scripting. It is not total system RAM, video memory, or the full process total
-shown by Task Manager.
+## Lua memory
 
-The controller checks once per second and uses the Lua heap capacity provided by
-Darktide's launch settings when available. If that value cannot be found, it
-uses the fallback capacity selected in the options menu.
+Memory monitoring is enabled by default. **Allow extra Lua cleanup** is off for
+new settings because Darktide already budgets its own garbage collection.
+Previously saved choices are retained when updating.
 
-Cleanup is deliberately gradual:
+The meter shows current Lua memory use. If the game does not report a heap
+limit, it uses the configured fallback and marks that estimate with `~`. The
+fallback is not total system RAM or video memory.
 
-- Memory must stay at or above 80% for five seconds before pressure handling
-  begins.
-- Small, limited cleanup steps are tried before a full cleanup.
-- At 85%, the mod can show a warning and temporarily reveal the heap meter.
-- At 90%, one full cleanup is allowed for that pressure episode.
-- At 95%, one further emergency cleanup is allowed.
-- The episode ends once use falls below 80%.
-- A sharp rise over a short period can trigger an earlier cleanup.
+Extra collection remains available for troubleshooting. Full collections can
+pause a frame, so leave them off unless you have a reason to test them. If you
+enable extra collection, disable SMOG, MemLeakFix, FPS Doctor and any other
+automatic Lua memory cleaner. Use one collector controller at a time.
 
-The controller can also clean after selected transitions between the
-Mourningstar, missions, and other client states. These cleanups wait briefly so
-loading activity can settle first.
-
-An optional ten-minute cleanup exists but is disabled by default because any
-full Lua cleanup can create a brief frame-time hitch. Manual cleanup can cause
-the same hitch, especially when a large amount of memory has accumulated.
-
-Only one feature should control automatic Lua cleanup at a time. Tertium Fixes
-will put its own cleanup on standby if it detects that the collector is already
-owned elsewhere. Monitoring can also be kept on while cleanup permission is
-turned off.
-
-Before using this controller, disable every other mod or option that performs
-automatic Lua memory cleaning, garbage collection, or collector tuning. Restart
-Darktide after disabling them so two cleanup controllers cannot retain state in
-the same session. The Nexus description names the currently known conflicts.
-
-### Heap meter and controls
-
-The meter shows current Lua heap use, capacity, percentage, and the current
-pressure level. It can be moved horizontally and vertically in the options.
-
-- **F5** requests a manual full cleanup.
-- **F8** shows or hides the heap meter for the current session.
-
-Both keys can be rebound or cleared. A successful manual cleanup reports the
-heap before and after cleaning and the amount reclaimed. Manual cleanup has a
-three-second cooldown.
-
-## Performance without reduced fidelity
-
-The normal configuration does not lower graphical or audio quality. Performance
-work comes from cleaning up expired HUD entries, abandoned listeners, finished
-audio handles, stranded particles, stale effect state, and unnecessary repeated
-work. Settings and module state are cached, and only features that genuinely
-need regular checks are updated continuously.
-
-The mod does not reduce textures, lighting, resolution, animation quality,
-audio quality, normal particle quality, visibility, simulation detail, or render
-scale. The optional chain-weapon smoke workaround is the one deliberate visual
-exception because its purpose is to remove a visible smoke tail; it is disabled
-by default.
-
-This work is intended to improve consistency and reduce avoidable client load,
-particularly in longer sessions. The result still depends on hardware, drivers,
-graphics settings, mission conditions, and the current game version. It cannot
-remove network delay or guarantee a particular frame-rate increase.
-
-## Optional behaviours
-
-These are the three behaviours disabled by default because each accepts a
-noticeable tradeoff.
-
-### Notification deduplication
-
-Suppresses identical callback-free default and alert messages inside the chosen
-window. Anything with callbacks or timing passes through unchanged. This stays
-off by default because repetition can be meaningful feedback even when the call
-has no callback or delay.
-
-### Aggressive chain-weapon smoke cleanup
-
-Stops the affected smoke effect during chain-weapon power-down. This can prevent
-smoke from remaining far longer than intended, but it also removes the normal
-short smoke tail. The power-down sound is preserved.
-
-### Servo-Skull scroll isolation
-
-This is a stronger control preference, separate from Darktide 1.12.4's fix for
-wheel-bound Servo-Skull activation interruption. It removes mouse-wheel weapon
-switching while the skull is held, so the wheel cannot cycle weapons until the
-skull is put away. Keyboard and controller selection remain available.
-
-## Settings worth knowing
-
-Most players can leave the defaults alone. The extra controls are there for
-people who want to tune behaviour or diagnose a particular problem.
-
-- **Notification duplicate window** sets how long an identical safe message is
-  treated as a repeat when optional deduplication is enabled. The default is
-  two seconds.
-- **Include mission notifications** also applies optional deduplication to
-  matching mission messages. This stays off by default.
-- **Localization fallback** chooses a visible placeholder or blank text when the
-  game supplies an invalid text value.
-- **Permit automatic and manual cleanup** can be disabled to keep heap
-  monitoring without allowing any cleanup action.
-- **Fallback Lua heap capacity** is used only when Darktide does not provide a
-  valid Lua heap limit. It should not be set to total system RAM or video memory.
-- **Clean at safe state transitions** allows delayed cleanup after selected
-  entries and exits.
-- **Optional ten-minute cleanup** stays off by default because full cleanup can
-  hitch.
-- **Record abnormal-exit heap context** remembers only the previous session's
-  broad pressure level and whether a clean shutdown was recorded. It provides
-  context after an unexpected exit; it does not claim memory caused the crash.
-- **Experimental local FX allocator** and **experimental network FX
-  containment** are advanced recovery options. Both remain off by default.
-- **Automatic per-module quarantine** stops one repair after repeated unexpected
-  errors while allowing the rest of the package to continue.
-
-## Commands
-
-- `/tf_status` shows which repairs are available, active, disabled, or
-  quarantined, together with their activity and error counters.
-- `/tf_reset module_id` clears errors, quarantine, and temporary state for one
-  repair. Use `/tf_status` to find the module ID.
-- `/tf_reset all` resets every repair without a restart.
-- `/tf_gc` or `/tf_gc status` shows heap capacity, current pressure, cleanup
-  availability, and recent actions.
-- `/tf_gc clean` requests one guarded full cleanup.
-- `/tf_gc step` requests one small incremental cleanup slice.
-
-Cleanup commands stay blocked when cleanup permission is disabled or this
-feature does not currently own Lua cleanup.
-
-## Requirements
-
-- Darktide Mod Loader
-- Darktide Mod Framework
-
-## Installation
+## Install or update
 
 1. Install Darktide Mod Loader and Darktide Mod Framework.
-2. Open Darktide's `mods` folder.
-3. Copy the complete `TertiumFixes` folder into it.
-4. Add `TertiumFixes` on its own line in `mods/mod_load_order.txt`.
-5. Launch Darktide and open the mod options if you want to change anything.
+2. Close Darktide and keep a copy of the existing `TertiumFixes` folder if you
+   want to be able to roll back.
+3. Replace that folder with the complete `TertiumFixes` folder from the archive.
+   The path should be `Darktide/mods/TertiumFixes/TertiumFixes.mod`.
+4. Keep `TertiumFixes` on its own line in `mods/mod_load_order.txt`. Remove the
+   overlapping input mods from that file, or put `--` before their entries, and
+   disable them in Mod Options. Their old hook registration can still report
+   errors if they remain in the load order. If a mod manager maintains the file,
+   disable the same entries there so its next deployment keeps this choice.
+5. After a game update, re-enable the mod loader with its supplied patcher if
+   required, then start the game.
 
-The finished folder should be `Darktide/mods/TertiumFixes/`. Do not add an
-extra folder level between `mods` and `TertiumFixes`.
-
-## Updating
-
-Delete the existing `TertiumFixes` folder and replace it with the complete
-folder from the new release. Do not merge releases together. Old files left
-behind can cause errors even when the current files are correct. Saved settings
-should remain available through Darktide Mod Framework.
-
-Version 0.3.0 was withdrawn because it could cause a startup script error. If
-you ever installed it, completely remove that old folder before installing the
-current release.
-
-## Compatibility and limits
-
-This unstable preview is source-contract tested against Darktide 1.12.4,
-snapshot `fffb2f1f8a38b42f61cc98610bda0dfdd2129914`. The compatibility gate must
-pass with no skipped source checks before the archive is built.
-
-Tertium Fixes is client-side. Other players do not need it installed and the
-host does not need to use it. Each repair is separated from the others. If a
-Darktide update changes an affected system, the repair is designed to leave the
-game's original behaviour in place instead of guessing. Automatic quarantine
-can also stop one failing repair without disabling everything else.
-
-Client-side Lua cannot repair every kind of problem. Tertium Fixes cannot
-directly change server-side combat results, hit validation, matchmaking,
-service outages, account records, rewards, inventory, progression, packet loss,
-routing problems, native engine faults, graphics-driver faults, operating-system
-faults, or missing game content that requires an official update. It provides
-targeted local repairs and workarounds, not a promise that every possible crash,
-disconnect, stutter, or black screen has one client-side solution.
-
-Automated source and behavior checks are not the same as broad live gameplay
-soak. This is intentionally an unstable/optional download while 1.12.4 live
-sessions are collected. `/tf_status` exposes per-module hits and actions so a
-hook being installed is not presented as a repair having fired.
+Replace the folder rather than merging releases. Old files can otherwise remain
+alongside the updated code. Mod Framework keeps saved settings separately.
 
 ## Troubleshooting
 
-### Startup says "loop or previous error loading module"
+`/tf_status` shows which fixes are active and their hit, action and error counts.
+A hook loading successfully does not mean it has fixed anything in that session.
 
-Delete the existing `TertiumFixes` folder completely, make sure no old copy is
-left behind, and install the current release into a fresh folder. Merging files
-from different versions is the usual cause.
+`/tf_reset module_id` clears a fix's error state and reapplies it where supported.
+`/tf_reset all` does this for every module. A fix that repeatedly fails should be
+left disabled until the underlying issue is understood.
 
-### The mod does not appear in the options menu
+`/tf_gc` shows memory status. `/tf_gc clean` requests a full collection and
+`/tf_gc step` requests a small collection step; both require extra cleanup to be
+enabled. The default keys are F8 for the meter and F5 for full cleanup when
+permitted. Saved key bindings take precedence.
 
-Check that the loader and framework are installed, the folder is exactly
-`Darktide/mods/TertiumFixes/`, `TertiumFixes` is on its own line in
-`mods/mod_load_order.txt`, and there is no second nested `TertiumFixes` folder.
+`/tf_graphics` shows graphics preset status. `/tf_graphics restore` turns that
+feature off and restores captured values that are still owned by the preset.
 
-### One repair stopped working
+Before uninstalling, use `/tf_graphics restore` if a preset is active, then close
+the game. Remove the `TertiumFixes` line from the load order and remove its folder.
+Only re-enable standalone input mods that support the installed game version.
 
-Run `/tf_status`. If the repair was quarantined, use `/tf_reset module_id` after
-the immediate problem has passed. If it repeatedly stops itself, leave only
-that setting disabled until a compatible update is available.
-
-### The heap percentage looks wrong
-
-Check the fallback Lua heap capacity. It should match the configured Lua heap
-limit when Darktide is not supplying that value automatically, not your total
-RAM or video memory.
-
-### The Hive Scum chime does not play immediately after spawning
-
-That is intentional. The first ready state after joining, spawning,
-reconnecting, equipping, or enabling the option is silent. The chime plays when
-the personal stimm later changes from empty to usable.
-
-### Uninstalling
-
-Remove `TertiumFixes` from `mods/mod_load_order.txt`, then delete the
-`Darktide/mods/TertiumFixes` folder.
+This is an unstable release while broader gameplay testing continues. The
+checked game version, reproductions and remaining limits are recorded in
+[VERIFICATION.md](VERIFICATION.md) and [RESEARCH.md](RESEARCH.md). Client Lua
+cannot repair server hit registration, service outages, account progression or
+native graphics faults.

@@ -98,14 +98,16 @@ function module:install()
 		SETTINGS_PATH,
 		function (returned_settings)
 			danger_settings = nil
+			local levels = type(returned_settings) == "table"
+				and rawget(returned_settings, "danger_levels")
 
-			if type(returned_settings) ~= "table" or #returned_settings < 1 then
+			if type(levels) ~= "table" or #levels < 1 then
 				runtime:set_available(self.id, false, "DangerSettings unavailable after game load")
 
 				return
 			end
 
-			danger_settings = returned_settings
+			danger_settings = levels
 		end
 	)
 

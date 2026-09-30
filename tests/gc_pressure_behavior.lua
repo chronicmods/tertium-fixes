@@ -103,10 +103,16 @@ local mod = {
 
 local dmf = {
 	save_calls = 0,
+	save_failures = 0,
 }
 
 function dmf.save_unsaved_settings_to_file()
 	dmf.save_calls = dmf.save_calls + 1
+
+	if dmf.save_failures > 0 then
+		dmf.save_failures = dmf.save_failures - 1
+		error("settings save failed", 0)
+	end
 end
 
 function mod:echo(message, ...)
@@ -283,6 +289,7 @@ local function reset_world()
 	mod.stored = {}
 	mod.warnings = {}
 	dmf.save_calls = 0
+	dmf.save_failures = 0
 
 	for _, candidate in pairs(external_mods) do
 		candidate.enabled = false
@@ -1126,6 +1133,122 @@ check(
 		and collector_stepmul == 375,
 	"partial tuning restoration retries the unfinished value to completion"
 )
+
+-- Restoring only pause before a step-multiplier failure must not lose pause's
+-- original when pressure resumes and asks for stronger tuning.
+reset_world()
+collector_pause = 225
+collector_stepmul = 375
+module = load_module()
+module:_set_tuning(1)
+fail_next_collector_call("setstepmul")
+module:_restore_tuning("partial restore")
+module:_set_tuning(2)
+module:_restore_tuning("pressure cleared again")
+
+check(
+	collector_pause == 225 and collector_stepmul == 375 and not module._tuning_owned,
+	"escalation after a partial restoration preserves both original collector values"
+)
+
+reset_world()
+settings.gc_capacity_fallback_mb = 0 / 0
+module = load_module()
+module:_sample_heap()
+
+check(
+	module._heap_capacity_mb == 1024 and string.find(module:meter_snapshot().label, "~1024", 1, true),
+	"invalid fallback capacity uses the default and the meter marks it as an estimate"
+)
+local last_valid_heap = module._last_heap_mb
+heap_kb = math.huge
+check(not module:_sample_heap() and module._last_heap_mb == last_valid_heap, "nonfinite heap readings leave the last valid measurement intact")
+
+reset_world()
+settings.gc_enabled = false
+settings.gc_shutdown_diagnostic_enabled = true
+module = load_module()
+module:on_enabled()
+module:on_game_state_changed("enter", "StateIngame")
+module:toggle_hud()
+
+check(
+	not module:meter_snapshot().visible and next(module._scheduled) == nil
+		and mod.stored.tf_gc_previous_shutdown_clean ~= false,
+	"a disabled heap module cannot show a stale meter, queue work, or mark a session unclean"
+)
+
+reset_world()
+settings.gc_cleaning_permitted = false
+module = load_module()
+
+for sample = 1, 35 do
+	module._clock = sample
+	heap_kb = (200 + sample * 5) * 1024
+	module:_sample_heap()
+end
+
+check(next(module._growth_samples) == nil and collector_call_count("collect") == 0, "monitor-only samples do not build a future cleanup backlog")
+
+reset_world()
+module = load_module()
+module:on_game_state_changed("enter", "StateIngame")
+module:on_game_state_changed("exit", "StateIngame")
+module:update(1)
+
+check(collector_call_count("collect") == 1 and next(module._scheduled) == nil, "entry and exit due together perform one transition collection")
+
+reset_world()
+settings.gc_shutdown_diagnostic_enabled = true
+dmf.save_failures = 1
+module = load_module()
+module:_write_shutdown_marker(false)
+module:_write_shutdown_marker(false)
+
+check(dmf.save_calls == 2 and not module._marker_dirty, "a failed shutdown-marker save is retried once without rewriting an unchanged marker")
+
+-- A manual collection can relieve pressure before the next scheduled sample.
+reset_world()
+module = load_module()
+module:_set_tuning(1)
+module._pressure = true
+heap_kb = 900 * 1024
+collect_after_kb = 500 * 1024
+module:manual_collect()
+
+check(not module._pressure and collector_pause == 200 and collector_stepmul == 300, "manual collection restores tuning immediately when pressure clears")
+
+-- Exercise the meter's active-state check independently of the module snapshot.
+do
+	local saved_class = class
+	local saved_dofile = mod.io_dofile
+	local saved_get_module = runtime.get_module
+	local definitions = { bar_width = 244, default_x_percent = 5, default_y_percent = 65, x_travel = 1660, y_travel = 1038 }
+	local super = {
+		init = function (self)
+			self._widgets_by_name = { gc_meter = {
+				content = {},
+				style = { fill = { size = {}, color = {} }, label = { text_color = {} } },
+			} }
+		end,
+		update = function () end,
+		destroy = function () end,
+	}
+	class = function () return { super = super } end
+	mod.io_dofile = function () return definitions end
+	runtime.get_module = function () return module end
+	local hud = dofile("scripts/mods/TertiumFixes/hud/hud_element_gc_meter.lua")
+	local meter_instance = setmetatable({ set_scenegraph_position = function () end }, { __index = hud })
+	hud.init(meter_instance)
+	module._meter.visible = true
+	settings.gc_enabled = false
+	hud._refresh_meter(meter_instance)
+
+	check(meter_instance._widgets_by_name.gc_meter.content.visible == false, "HUD hides an inactive heap module even when its last snapshot said visible")
+	class = saved_class
+	mod.io_dofile = saved_dofile
+	runtime.get_module = saved_get_module
+end
 
 io.write(
 	string.format(

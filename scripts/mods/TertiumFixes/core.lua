@@ -3,14 +3,25 @@ local mod = get_mod("TertiumFixes")
 local Runtime = {}
 
 Runtime.__index = Runtime
-Runtime.version = "0.5.2-unstable.1"
+Runtime.version = "0.6.0-unstable.2"
 local _unpack = unpack or table.unpack
 Runtime.defaults = {
 	auto_quarantine_enabled = true,
 	auto_quarantine_threshold = 3,
 	cursor_stack_enabled = true,
 	input_device_handoff_enabled = true,
+	input_retry_enabled = true,
+	input_retry_swap_enabled = true,
+	input_retry_ability_enabled = true,
+	input_retry_special_enabled = true,
+	input_retry_reload_enabled = true,
+	input_retry_blitz_enabled = true,
 	rumble_apply_enabled = true,
+	ui_resource_cleanup_enabled = true,
+	social_roster_portrait_enabled = true,
+	weapon_effect_transitions_enabled = true,
+	graphics_presets_enabled = false,
+	graphics_preset = "performance",
 	veteran_redirect_tooltip_enabled = true,
 	zealot_prime_target_tooltip_enabled = true,
 	power_overload_hud_enabled = true,
@@ -23,7 +34,7 @@ Runtime.defaults = {
 	localization_guard_enabled = true,
 	localization_fallback_mode = "diagnostic",
 	gc_enabled = true,
-	gc_cleaning_permitted = true,
+	gc_cleaning_permitted = false,
 	gc_capacity_fallback_mb = 1024,
 	gc_convenient_cleanup_enabled = true,
 	gc_periodic_cleanup_enabled = false,
@@ -51,7 +62,11 @@ Runtime.defaults = {
 }
 
 local function _clean_error(err)
-	local text = tostring(err or "unknown error")
+	local ok, text = pcall(tostring, err == nil and "unknown error" or err)
+
+	if not ok then
+		text = "unprintable " .. type(err) .. " error"
+	end
 
 	text = string.gsub(text, "[\r\n]+", " ")
 
@@ -63,7 +78,11 @@ local function _clean_error(err)
 end
 
 local function _clean_traceback(value)
-	local text = tostring(value or "")
+	local ok, text = pcall(tostring, value or "")
+
+	if not ok then
+		return "traceback unavailable"
+	end
 
 	if #text > 4000 then
 		text = string.sub(text, 1, 4000) .. "..."
@@ -84,7 +103,7 @@ local function _error_payload(err)
 	local traceback = message
 
 	if debug and type(debug.traceback) == "function" then
-		local ok_traceback, result = pcall(debug.traceback, tostring(err), 2)
+		local ok_traceback, result = pcall(debug.traceback, message, 2)
 
 		if ok_traceback and result ~= nil then
 			traceback = _clean_traceback(result)
@@ -163,11 +182,7 @@ function Runtime:_compute_module_active(module)
 end
 
 function Runtime:_rebuild_update_modules()
-	local update_modules = self._update_modules
-
-	for i = #update_modules, 1, -1 do
-		update_modules[i] = nil
-	end
+	local update_modules = {}
 
 	for i = 1, #self.module_order do
 		local module = self.modules[self.module_order[i]]
@@ -176,6 +191,9 @@ function Runtime:_rebuild_update_modules()
 			update_modules[#update_modules + 1] = module
 		end
 	end
+
+	-- An update can disable its own module. Keep the current iteration intact.
+	self._update_modules = update_modules
 end
 
 function Runtime:_refresh_all_module_activation()
@@ -186,6 +204,7 @@ function Runtime:_refresh_all_module_activation()
 		if module.state.active ~= active then
 			module.state.active = active
 			module.state.update_accumulator = 0
+			module.state.update_elapsed = 0
 		end
 	end
 
@@ -230,6 +249,7 @@ function Runtime:add_module(module)
 		quarantined = false,
 		reason = nil,
 		update_accumulator = 0,
+		update_elapsed = 0,
 	}
 	self.modules[module.id] = module
 	self.module_order[#self.module_order + 1] = module.id
@@ -254,11 +274,35 @@ function Runtime:set_available(module_id, available, reason)
 		return
 	end
 
+	local was_available = module.state.available
+
 	module.state.available = available and true or false
 	module.state.reason = reason
 	module.state.active = self:_compute_module_active(module)
 	module.state.update_accumulator = 0
+	module.state.update_elapsed = 0
 	self:_rebuild_update_modules()
+
+	if was_available and not module.state.available and not module.state.quarantined then
+		self:_cleanup_module(module, "unavailable-cleanup")
+	end
+end
+
+function Runtime:_cleanup_module(module, phase, callback, ...)
+	callback = callback or module.on_disabled
+
+	if module._cleaning_up or type(callback) ~= "function" then
+		return
+	end
+
+	module._cleaning_up = true
+	local ok, err = self:_protected_call(callback, module, ...)
+
+	if not ok then
+		self:record_error(module.id, err, { phase = phase })
+	end
+
+	module._cleaning_up = nil
 end
 
 function Runtime:is_active(module_id)
@@ -287,8 +331,8 @@ function Runtime:_new_error_record(module_id, err, context)
 	context = type(context) == "table" and context or {}
 
 	local payload = type(err) == "table" and err or nil
-	local message = payload and payload.message or _clean_error(err)
-	local traceback = payload and payload.traceback or context.traceback
+	local message = payload and rawget(payload, "message") or _clean_error(err)
+	local traceback = payload and rawget(payload, "traceback") or context.traceback
 
 	self._error_sequence = self._error_sequence + 1
 
@@ -330,12 +374,14 @@ function Runtime:record_error(module_id, err, context)
 		state.quarantined = true
 		state.active = false
 		state.update_accumulator = 0
+		state.update_elapsed = 0
 		state.reason = string.format(
 			"auto-quarantined after %d consecutive errors (%d lifetime)",
 			state.consecutive_errors,
 			state.errors
 		)
 		self:_rebuild_update_modules()
+		self:_cleanup_module(module, "quarantine-cleanup")
 		pcall(
 			mod.echo,
 			mod,
@@ -359,20 +405,26 @@ function Runtime:record_success(module_id)
 end
 
 function Runtime:_protected_call(callback, ...)
+	if self._checked_xpcall ~= xpcall then
+		-- Darktide can replace xpcall with an engine binding. Check that binding
+		-- before relying on LuaJIT's argument support.
+		local ok, passed, count, first, last = pcall(xpcall, function (...)
+			return select("#", ...), ...
+		end, _error_payload, "first", nil)
+
+		self._checked_xpcall = xpcall
+		self._xpcall_passes_args = ok and passed and count == 2 and first == "first" and last == nil
+	end
+
+	if self._xpcall_passes_args then
+		return xpcall(callback, _error_payload, ...)
+	end
+
 	local arguments = _pack(...)
-	local function invoke()
+
+	return xpcall(function ()
 		return callback(_unpack(arguments, 1, arguments.n))
-	end
-	local function on_error(err)
-		return _error_payload(err)
-	end
-	local results = _pack(xpcall(invoke, on_error))
-
-	if not results[1] then
-		return false, results[2]
-	end
-
-	return true, _unpack(results, 2, results.n)
+	end, _error_payload)
 end
 
 function Runtime:_invoke_hook_api(hook_function, target, method_name, handler)
@@ -403,34 +455,31 @@ function Runtime:_invoke_hook_api(hook_function, target, method_name, handler)
 		end
 	end
 
-	-- Current DMF returns nil for both a successful hook and every logged
-	-- rejection. Its registry is private, but registration is synchronous and
-	-- every non-throwing reject calls this mod's error or warning logger. Shadow
-	-- those two methods only for the call, forward them, and always restore the
-	-- exact raw fields afterwards. Nil with no diagnostic remains success.
+	-- DMF returns nil for success and for logged rejections. Capture its logs
+	-- during registration, then put this mod's original logger fields back.
 	if shadowed then
 		rawset(mod, "error", shadow("error", resolved_error))
 		rawset(mod, "warning", shadow("warning", resolved_warning))
 	end
 
-	local results = _pack(self:_protected_call(
+	local ok, result = self:_protected_call(
 		hook_function,
 		mod,
 		target,
 		method_name,
 		handler
-	))
+	)
 
 	if shadowed then
 		rawset(mod, "error", raw_error)
 		rawset(mod, "warning", raw_warning)
 	end
 
-	if not results[1] then
-		return false, results[2]
+	if not ok then
+		return false, result
 	end
 
-	if results[2] == false then
+	if result == false then
 		return false, {
 			message = "DMF hook API returned false",
 			traceback = "DMF hook API returned false",
@@ -447,18 +496,20 @@ function Runtime:_invoke_hook_api(hook_function, target, method_name, handler)
 	return true
 end
 
-function Runtime:run_phase(module_id, phase, callback, ...)
-	local ok, a, b, c, d = self:_protected_call(callback, ...)
-
+function Runtime:_finish_call(module_id, phase, ok, ...)
 	if not ok then
-		self:record_error(module_id, a, { phase = phase })
+		self:record_error(module_id, (...), { phase = phase })
 
 		return false
 	end
 
 	self:record_success(module_id)
 
-	return true, a, b, c, d
+	return true, ...
+end
+
+function Runtime:run_phase(module_id, phase, callback, ...)
+	return self:_finish_call(module_id, phase, self:_protected_call(callback, ...))
 end
 
 function Runtime:run(module_id, callback, ...)
@@ -608,8 +659,7 @@ function Runtime:_apply_deferred_path(file_path, loaded_value)
 		return false
 	end
 
-	-- A target is terminal as soon as it has begun applying. This blocks both
-	-- duplicate delivery and re-entrant replay after a partially applied patch.
+	-- Never repeat work on the same target, including a partly applied patch.
 	if path_entry.target_states[loaded_value] then
 		return path_entry.target_states[loaded_value] == "applied"
 	end
@@ -754,11 +804,10 @@ function Runtime:_register_deferred_paths()
 		local path_entry = self._deferred_paths[file_path]
 
 		if path_entry and not path_entry.registration_attempted then
-			-- Keep a distinct local for Lua 5.1 closure semantics.
+			-- Each callback needs its own path on Lua 5.1.
 			local registered_path = file_path
 
-			-- hook_require may synchronously invoke the callback for a value that
-			-- Darktide already loaded, so publish both facts before calling DMF.
+			-- DMF may deliver an already loaded file inside hook_require.
 			path_entry.registration_attempted = true
 			path_entry.registered = true
 			self:_set_deferred_state(registered_path, "registered")
@@ -768,8 +817,7 @@ function Runtime:_register_deferred_paths()
 				mod,
 				registered_path,
 				function (loaded_value)
-					-- This callback executes inside DMF's wrapped require *after* the
-					-- original game require. Nothing is allowed to escape it.
+					-- A mod failure must not escape into the game's require call.
 					local ok_barrier, barrier_error = pcall(function ()
 						local ok_apply, apply_error = self:_protected_call(
 							self._apply_deferred_path,
@@ -936,9 +984,8 @@ function Runtime:install_modules()
 		end
 	end
 
-	-- Register one aggregated callback per game file after every module has had
-	-- a chance to queue its methods. This never calls require() itself, avoiding
-	-- partial-load sentinels when engine prerequisites are not initialized yet.
+	-- Register once per game file after all modules have queued their work.
+	-- Let the game load its own files when their prerequisites are ready.
 	self:_register_deferred_paths()
 
 	self:_refresh_all_module_activation()
@@ -947,7 +994,7 @@ end
 function Runtime:update(dt)
 	dt = tonumber(dt) or 0
 
-	if dt < 0 or dt > 5 then
+	if dt ~= dt or dt < 0 or dt > 5 then
 		dt = 0
 	end
 
@@ -957,20 +1004,25 @@ function Runtime:update(dt)
 		return
 	end
 
-	for i = 1, #self._update_modules do
-		local module = self._update_modules[i]
+	local update_modules = self._update_modules
+
+	for i = 1, #update_modules do
+		local module = update_modules[i]
 
 		if module and module.state.active then
 			local interval = tonumber(module.update_interval) or 0
 
 			if interval > 0 then
 				local accumulated = module.state.update_accumulator + dt
+				local elapsed = module.state.update_elapsed + dt
 
 				if accumulated >= interval then
 					module.state.update_accumulator = accumulated % interval
-					self:run_phase(module.id, "update", module.update, module, accumulated)
+					module.state.update_elapsed = 0
+					self:run_phase(module.id, "update", module.update, module, elapsed)
 				else
 					module.state.update_accumulator = accumulated
+					module.state.update_elapsed = elapsed
 				end
 			else
 				self:run_phase(module.id, "update", module.update, module, dt)
@@ -988,15 +1040,17 @@ function Runtime:dispatch(event_name, ...)
 		local module = self.modules[module_id]
 		local callback = module[event_name]
 
-		-- Cleanup must remain reachable even after a partial installation or
-		-- quarantine. All other lifecycle work stays inert while the whole mod
-		-- is disabled.
+		-- Failed or quarantined modules may still have state to release.
 		if type(callback) == "function"
 			and (
 				cleanup_event
 				or (mod_enabled and module.state.available and not module.state.quarantined)
 			) then
-			self:run_phase(module_id, event_name, callback, module, ...)
+			if cleanup_event then
+				self:_cleanup_module(module, event_name, callback, ...)
+			else
+				self:run_phase(module_id, event_name, callback, module, ...)
+			end
 		end
 	end
 end
@@ -1096,6 +1150,9 @@ function Runtime:reset(module_id)
 		local module = self.modules[id]
 
 		if not module_id or module_id == "" or module_id == "all" or module_id == id then
+			local was_quarantined = module.state.quarantined
+			local reset_ok = true
+
 			module.state.errors = 0
 			module.state.consecutive_errors = 0
 			module.state.first_error = nil
@@ -1108,7 +1165,26 @@ function Runtime:reset(module_id)
 			end
 
 			if type(module.reset) == "function" then
-				self:run_phase(id, "reset", module.reset, module)
+				reset_ok = self:run_phase(id, "reset", module.reset, module)
+			end
+
+			module.state.active = self:_compute_module_active(module)
+			module.state.update_accumulator = 0
+			module.state.update_elapsed = 0
+
+			if reset_ok and was_quarantined and module.state.active and type(module.on_enabled) == "function" then
+				reset_ok = self:run_phase(id, "reset-enable", module.on_enabled, module)
+			end
+
+			if not reset_ok then
+				local needs_cleanup = not module.state.quarantined
+				module.state.quarantined = true
+				module.state.active = false
+				module.state.reason = "reset failed"
+
+				if needs_cleanup then
+					self:_cleanup_module(module, "reset-cleanup")
+				end
 			end
 
 			reset_count = reset_count + 1
