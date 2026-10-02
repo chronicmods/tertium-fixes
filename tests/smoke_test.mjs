@@ -92,6 +92,12 @@ if (defaults) {
     assert(defaults.chain_smoke_cleanup_enabled == false, "smoke removal must be opt-in")
     assert(defaults.servo_skull_scroll_enabled == false, "wheel isolation must be opt-in")
     assert(defaults.notification_dedupe_enabled == false, "notification suppression must be opt-in")
+    for _, key in ipairs({
+      "input_retry_enabled", "input_retry_swap_enabled", "input_retry_ability_enabled",
+      "input_retry_special_enabled", "input_retry_reload_enabled", "input_retry_blitz_enabled",
+    }) do
+      assert(defaults[key] == false, key .. " must be opt-in")
+    end
   `, true);
 }
 lua.lua_close(L);

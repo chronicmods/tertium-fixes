@@ -1,4 +1,4 @@
-# Tertium Fixes 0.6.0-unstable.2
+# Tertium Fixes 0.6.0-unstable.3
 
 Created and maintained by chronic.
 
@@ -42,7 +42,11 @@ not keep swapping back and forth. Normal aiming, holds, releases and deliberate
 cancellations still apply. This improves a press lost to a short action or
 input block; it cannot make an unavailable ability fire or remove network delay.
 
-The input settings are independent. Disable **Guarantee Weapon Swap**,
+Input retries are off for new installs. To use them, turn on **Keep briefly
+blocked inputs** and the actions you want to retry in Mod Options. Updating
+keeps any input settings you have already saved.
+
+Disable **Guarantee Weapon Swap**,
 **Guarantee Ability Activation** and **Guarantee Special Action** when using
 the corresponding Tertium Fixes options. Running both can queue the same press
 twice. The first two older mods also hook a method removed in Darktide 1.13.0.

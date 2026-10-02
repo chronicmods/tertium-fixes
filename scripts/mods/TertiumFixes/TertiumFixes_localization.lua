@@ -16,7 +16,7 @@ return {
 	compatibility_group = { en = "Compatibility and experimental fixes" },
 	diagnostics_group = { en = "Troubleshooting" },
 	input_retry_enabled = { en = "Keep briefly blocked inputs" },
-	input_retry_enabled_description = { en = "Keeps a recent press for up to 0.75 seconds while the game cannot accept it. Clears it when the action starts, the situation changes, or you cancel it." },
+	input_retry_enabled_description = { en = "Off by default. Turn this on and select the actions you want to retry. A press is kept for up to 0.75 seconds and cleared when the action starts, the situation changes or you cancel it." },
 	input_retry_swap_enabled = { en = "Retry weapon swaps" },
 	input_retry_swap_enabled_description = { en = "Keeps the slot you selected, including quick swap and scrolling. Stops when that slot is reached or another selection replaces it." },
 	input_retry_ability_enabled = { en = "Retry ability activation" },

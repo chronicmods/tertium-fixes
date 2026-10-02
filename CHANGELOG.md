@@ -1,5 +1,12 @@
 # Changes
 
+## 0.6.0-unstable.3
+
+- Input retries now start off for new installs, including the weapon-swap,
+  ability and special-action replacements. Reload and quick Blitz retries also
+  start off. Turn on **Keep briefly blocked inputs** and the actions you want
+  to retry in Mod Options. Existing saved choices are kept.
+
 ## 0.6.0-unstable.2
 
 - Added Ultra Performance, Performance, Balanced and Quality graphics presets,

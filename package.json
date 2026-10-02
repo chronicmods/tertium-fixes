@@ -1,6 +1,6 @@
 {
   "name": "tertium-fixes",
-  "version": "0.6.0-unstable.2",
+  "version": "0.6.0-unstable.3",
   "private": true,
   "description": "Tertium Fixes tests and packaging checks.",
   "scripts": {

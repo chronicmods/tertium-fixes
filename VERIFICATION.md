@@ -1,6 +1,6 @@
 # Verification
 
-Tertium Fixes **0.6.0-unstable.2** targets Darktide **1.13.0-b802981**, Steam
+Tertium Fixes **0.6.0-unstable.3** targets Darktide **1.13.0-b802981**, Steam
 build **25492122**, content revision **138030**.
 
 ## Source and behaviour checks
@@ -57,9 +57,17 @@ The grouped options were also checked with the installed Mod Framework options
 validator. All seven groups and 55 setting widgets were accepted with their
 defaults. A pre-existing setting value was retained in the compatibility check.
 
-The unstable.2 source archive also passed the complete gate after extraction,
-using dependencies resolved from its included package lock. The paired DarkCache
-source archive passed its 165 checks using that extracted Tertium source tree.
+The input master switch and all five action switches now default to off in both
+the options and runtime fallback. The source gate checks that they agree and
+that the input group remains opt-in. Saved Mod Framework values still take
+precedence over these new-install defaults.
+
+The unstable.3 source archive passed the complete gate after extraction,
+using the same locked test dependencies as the working tree. The earlier paired
+DarkCache source archive passed its 165 checks against unstable.2. The input
+retry implementation is unchanged; this release changes its defaults for new
+installs.
+
 Archive verification compares every entry with the source file and checks ZIP
 integrity. Game scripts and test dependencies are not bundled in the downloads.
 
@@ -104,6 +112,9 @@ The new graphics build and DarkCache combination still require their final live
 check. The earlier hub success does not establish that the new presets, cache
 transitions or every weapon effect work in the engine. No successful mission
 or native GPU benchmark is claimed here.
+
+There was no separate game run for unstable.3. The changed input defaults were
+checked in the source gate and with the installed Mod Framework options validator.
 
 ## Repeating the checks
 

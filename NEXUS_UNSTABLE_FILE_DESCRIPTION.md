@@ -1,4 +1,8 @@
-Tertium Fixes 0.6.0-unstable.2 for Darktide 1.13.0
+Tertium Fixes 0.6.0-unstable.3 for Darktide 1.13.0
+
+Input retries now start off for new installs. Turn on Keep briefly blocked
+inputs and the weapon-swap, ability, special, reload or quick Blitz actions you
+want to retry. Updating keeps saved choices.
 
 Adds four optional graphics presets: Ultra Performance, Performance, Balanced
 and Quality. Performance removes AO and shadows while keeping low fog. Ultra
@@ -7,7 +11,7 @@ tiers retain more lighting detail. Resolution, upscaling, FOV, textures and
 combat particles keep their existing settings. Disable More Graphics Options
 while using the new presets.
 
-Adds independent buffering for briefly blocked weapon swaps, abilities, weapon
+Includes independent buffering for briefly blocked weapon swaps, abilities, weapon
 specials, reloads and supported quick Blitz actions. Disable the corresponding
 Guarantee Weapon Swap, Guarantee Ability Activation and Guarantee Special Action
 mods before using the new options.

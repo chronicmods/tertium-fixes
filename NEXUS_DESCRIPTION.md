@@ -12,9 +12,10 @@ want or isolate a problem without removing the whole mod.
 ## The 1.13 update
 
 This version was checked against the scripts from the installed Depths of the
-Damned build. The update adds input buffering, several menu repairs and fixes
-for weapon sounds after inspecting. It also fixes problems in Tertium Fixes'
-own scheduling and cleanup, and recognises Prime Target's official correction.
+Damned build. The update includes optional input buffering, several menu
+repairs and fixes for weapon sounds after inspecting. It also fixes problems
+in Tertium Fixes' own scheduling and cleanup, and recognises Prime Target's
+official correction.
 
 ### Four graphics presets
 
@@ -53,6 +54,10 @@ This uses the game's normal controls and action handling. It does not remove
 cooldowns, change ability costs, force an invalid action or repeat an ability
 after it has already started. The individual input options can be changed
 separately.
+
+Input retries start off for new installs. Turn on Keep briefly blocked inputs
+and the actions you want to retry in Mod Options. Updating keeps your saved
+choices.
 
 Disable Guarantee Weapon Swap, Guarantee Ability Activation and Guarantee
 Special Action when using the matching options here. They cover the same
